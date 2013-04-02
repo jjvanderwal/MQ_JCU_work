@@ -80,6 +80,7 @@ bc = bioclim(x=sp.occur[,4:11])
 
 # evaluate bioclim
 e.bc = evaluate(p=sp.occur, a=background, model=bc)
+# EMG need to check implementation of function for p, a data as SWDs
 
 	
 # predict bioclim
@@ -148,6 +149,10 @@ writeRaster(p.mm, paste(outdir, "AWT_mahalanobis", sep=""), format="ascii")
 #
 #############################################################################################
 
+	
+	**************** UNDER CONSTRUCTION ******************
+
+
 ###############
 #
 # MAXENT
@@ -157,11 +162,27 @@ writeRaster(p.mm, paste(outdir, "AWT_mahalanobis", sep=""), format="ascii")
 #kludge to get data into the right format for maxent
 
 fix = rbind(sp.occur, background)
-ps = rep(1, length=nrow(sp.occur)
-as = rep(0, length=nrow(background)
+ps = rep(1, length=nrow(sp.occur))
+as = rep(0, length=nrow(background))
 v.occur = c(ps,as)
 
-me = maxent(x=fix[,4:11], p=v.occur)
+# EMG Note this next command works on my local machine (in <2min) but FAILS on HPC after 1h20min
+
+#me = maxent(x=fix[,4:11], p=v.occur)
+# Error in .jcall(mxe, "S", "fit", c("autorun", "-e", afn, "-o", dirout,  :
+#  java.awt.HeadlessException
+
+# EMG when it does run, it puts .html and other output files into a temp folder
+# but I want to specify the output dir
+
+#me = maxent(x=fix[,4:11], p=v.occur, path=paste(outdir, "maxent/", sep=""))
+#Error in .local(x, p, ...) : 
+#  cannot create output directory: c:/userdata/SDM/bccvl/output/maxent/
+# Funny thing is, it *does* create the dir, it just doesn't write the output to it!
+
+# alternative way to save output
+save(me, file=paste(outdir, "maxent/maxent_me", sep=""))
+# this is the model object, not sure if it's possible to get previous output (html etc)
 
 
 
@@ -171,7 +192,41 @@ me = maxent(x=fix[,4:11], p=v.occur)
 #
 ###############
 
-#library(gbm)
+library(gbm)
+
+# use the same 'fix' data.frame as above but add vector column of presence/
+#	absence to create single input data.frame
+fix2 = cbind(fix, v.occur)
+
+brt = gbm.step(data=fix2, gbm.x=4:11, gbm.y=12)
+# EMG not sure how to save the initial figure produced by function
+
+# evaluate brt
+#e.brt = evaluate(p=sp.occur, a=background, model=brt)
+#Error in paste("Using", n.trees, "trees...\n") : 
+#  argument "n.trees" is missing, with no default
+# EMG may  not be implemented for brt?
+
+# predict brt
+#p.brt = predict(brt, future.predictors)
+# as above, may not be implemented
+
+# for gbm.predict.grids
+source(paste(getwd(), "/brt.functions.R", sep=""))
+
+future.predictors.matrix = extract(future.predictors, sp.occur[,2:3])
+
+p.brt = gbm.predict.grids(brt, as.data.frame(future.predictors.matrix))
+p.brt = gbm.predict.grids(brt, as.data.frame(future.predictors.matrix), 
+	want.grids=T, sp.name="ABT", pred.vec = rep(-9999, 612226), 
+	filepath="c:/userdata/SDM/brt/", num.col=886, num.row=691,
+	x11=111.975, y11=-44.525,
+	cell.size=100, no.data=-9999, plot=T)
+
+
+# save output
+writeRaster(p.brt, paste(outdir, "ABT_brt", sep=""), format="ascii")
+
 
 #############################################################################################
 #
