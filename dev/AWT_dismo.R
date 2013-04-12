@@ -1,13 +1,16 @@
 
 # Date Created: 28 Mar 2013
-# Last Modified By: EGraham 28.03.13
+# Last Modified By: EGraham 12.04.13
 
-# This script test dismo using 1 species, 4 models, and one climate scenario
-# AWT occurrence and background data
-# BIOCLIM, DOMAIN, MAHAL, and MAXENT
-# RCP85_ukmo_hadcm2_2086
+# This script tests the dismo package using one species (AWT), its occurrence and background data,
+# and one climate scenario (RCP85_ukmo_hadcm2_2086)
 
-# source("bccvl_dismo.R")
+# profile methods: BIOCLIM, DOMAIN, MAHAL 
+# machine learning: MAXENT, BRT
+# geographic: GEODIST, CONVHULL, CIRCLES, GEOIDW, VORONOIHULL
+
+
+# source("bccvl/AWT_dismo.R")
 
 # start with a clean environment
 rm(list=ls())
@@ -22,10 +25,14 @@ outdir = paste(getwd(), '/output/', sep="")
 #install.packages("rJava")	# for MaxEnt; 
 # may need to do a 'R CMD javareconf -e' if you don't have root privileges
 # also make sure maxent.jar is available in ../R/library/dismo
+#install.packages("gbm")	# for BRT
+#install.packages("gstat")	# geoIDW
+#install.packages("deldir")	# voronoiHull
 
 # load libraries required
 library(dismo)
 library(SDMTools)	# for read.as.gz()
+library(gbm)
 
 
 # inputs
@@ -46,7 +53,7 @@ future.projs = list.files("/home/jc165798/Climate/CIAS/AWT/250m/bioclim_asc/RCP8
 # 19 files: bioclim_01 to bioclim_19.asc.gz
 
 # package files as raster stack to send to predict()
-# files are saved as *.asc.gz files, need to unzip, rasterize, stack and rename them
+# files are saved as *.asc.gz files, need to unzip, rasterize, stack and rename the layers
 converted = list()
 for (i in 1:length(future.projs)) {
 	temp = read.asc.gz(future.projs[i])
@@ -72,7 +79,7 @@ names(future.predictors) = c("bioclim_01", "bioclim_02", "bioclim_03", "bioclim_
 #
 ###############
 
-#bc = bioclim(sp.occur)
+#bc = bioclim(x=sp.occur)
 # Warning message: 'species' was removed because it is a factor (categorical data)
 # EMG: this would consider 'lon' and 'lat' columns as variables, too
 
@@ -87,7 +94,7 @@ e.bc = evaluate(p=sp.occur, a=background, model=bc)
 p.bc = predict(bc, future.predictors)
 
 # save output
-writeRaster(p.bc, paste(outdir, "AWT_bioclim", sep=""), format="ascii")
+writeRaster(p.bc, paste(outdir, "ABT_bioclim", sep=""), format="ascii")
 
 
 ###############
@@ -96,7 +103,7 @@ writeRaster(p.bc, paste(outdir, "AWT_bioclim", sep=""), format="ascii")
 #
 ###############
 
-dm = domain(sp.occur[,4:11])
+dm = domain(x=sp.occur[,4:11])
 
 # evaluate domain
 e.dm = evaluate(p=sp.occur, a=background, model=dm)
@@ -122,7 +129,7 @@ future.predictors.dm = dropLayer(future.predictors.dm, "bioclim_19")
 p.dm = predict(dm, future.predictors.dm)
 
 # save output
-writeRaster(p.dm, paste(outdir, "AWT_domain", sep=""), format="ascii")
+writeRaster(p.dm, paste(outdir, "ABT_domain", sep=""), format="ascii")
 
 
 ###############
@@ -131,7 +138,7 @@ writeRaster(p.dm, paste(outdir, "AWT_domain", sep=""), format="ascii")
 #
 ###############
 
-mm = mahal(sp.occur[,4:11])
+mm = mahal(x=sp.occur[,4:11])
 
 # evaluate mahalanobis
 e.mm = evaluate(p=sp.occur, a=background, model=mm)
@@ -140,7 +147,7 @@ e.mm = evaluate(p=sp.occur, a=background, model=mm)
 p.mm = predict(mm, future.predictors)
 
 # save output
-writeRaster(p.mm, paste(outdir, "AWT_mahalanobis", sep=""), format="ascii")
+writeRaster(p.mm, paste(outdir, "ABT_mahalanobis", sep=""), format="ascii")
 
 
 #############################################################################################
@@ -149,9 +156,6 @@ writeRaster(p.mm, paste(outdir, "AWT_mahalanobis", sep=""), format="ascii")
 #
 #############################################################################################
 
-	
-	**************** UNDER CONSTRUCTION ******************
-
 
 ###############
 #
@@ -159,31 +163,19 @@ writeRaster(p.mm, paste(outdir, "AWT_mahalanobis", sep=""), format="ascii")
 #
 ###############
 
-#kludge to get data into the right format for maxent
+# kludge to get data into the right format for maxent
 
-fix = rbind(sp.occur, background)
-ps = rep(1, length=nrow(sp.occur))
-as = rep(0, length=nrow(background))
+fix.data.me = rbind(sp.occur, background)
+ps = rep(1, length=nrow(sp.occur))	# presences
+as = rep(0, length=nrow(background))	# absences
 v.occur = c(ps,as)
 
 # EMG Note this next command works on my local machine (in <2min) but FAILS on HPC after 1h20min
 
-#me = maxent(x=fix[,4:11], p=v.occur)
-# Error in .jcall(mxe, "S", "fit", c("autorun", "-e", afn, "-o", dirout,  :
-#  java.awt.HeadlessException
+#me = maxent(x=fix.data.me[,4:11], p=v.occur, path=paste(outdir, "maxent", sep=""))
 
-# EMG when it does run, it puts .html and other output files into a temp folder
-# but I want to specify the output dir
-
-#me = maxent(x=fix[,4:11], p=v.occur, path=paste(outdir, "maxent/", sep=""))
-#Error in .local(x, p, ...) : 
-#  cannot create output directory: c:/userdata/SDM/bccvl/output/maxent/
-# Funny thing is, it *does* create the dir, it just doesn't write the output to it!
-
-# alternative way to save output
-save(me, file=paste(outdir, "maxent/maxent_me", sep=""))
-# this is the model object, not sure if it's possible to get previous output (html etc)
-
+#Error in .jcall(mxe, "S", "fit", c("autorun", "-e", afn, "-o", dirout,  :
+#java.awt.HeadlessException
 
 
 ###############
@@ -192,37 +184,21 @@ save(me, file=paste(outdir, "maxent/maxent_me", sep=""))
 #
 ###############
 
-library(gbm)
-
 # use the same 'fix' data.frame as above but add vector column of presence/
 #	absence to create single input data.frame
-fix2 = cbind(fix, v.occur)
+fix.data.brt = cbind(fix.data.me, v.occur)
 
-brt = gbm.step(data=fix2, gbm.x=4:11, gbm.y=12)
-# EMG not sure how to save the initial figure produced by function
+brt = gbm.step(data=fix.data.brt, gbm.x=4:11, gbm.y=12, tree.complexity=1, 
+	learning.rate=0.01, bag.fraction=0.75, family="bernoulli", plot.main=FALSE)
+# EMG 'plot.main' is defaulted to TRUE but it's not necessary on the HPC
 
 # evaluate brt
-#e.brt = evaluate(p=sp.occur, a=background, model=brt)
-#Error in paste("Using", n.trees, "trees...\n") : 
-#  argument "n.trees" is missing, with no default
-# EMG may  not be implemented for brt?
+e.brt = evaluate(p=sp.occur, a=background, model=brt, n.trees=brt$gbm.call$best.trees)
+# EMG calls predict() which requires n.trees arg
 
 # predict brt
-#p.brt = predict(brt, future.predictors)
-# as above, may not be implemented
-
-# for gbm.predict.grids
-source(paste(getwd(), "/brt.functions.R", sep=""))
-
-future.predictors.matrix = extract(future.predictors, sp.occur[,2:3])
-
-p.brt = gbm.predict.grids(brt, as.data.frame(future.predictors.matrix))
-p.brt = gbm.predict.grids(brt, as.data.frame(future.predictors.matrix), 
-	want.grids=T, sp.name="ABT", pred.vec = rep(-9999, 612226), 
-	filepath="c:/userdata/SDM/brt/", num.col=886, num.row=691,
-	x11=111.975, y11=-44.525,
-	cell.size=100, no.data=-9999, plot=T)
-
+p.brt = predict(future.predictors, brt, n.trees=brt$gbm.call$best.trees)
+# EMG Note the order of args for the predict function (cf dismo algorithms)
 
 # save output
 writeRaster(p.brt, paste(outdir, "ABT_brt", sep=""), format="ascii")
@@ -234,11 +210,27 @@ writeRaster(p.brt, paste(outdir, "ABT_brt", sep=""), format="ascii")
 #
 #############################################################################################
 
+############### Spatial-only models for presence data ###############
+
 ###############
 #
 # GEOGRAPHIC DISTANCE
 #
 ###############
+
+gd = geoDist(p=sp.occur[,2:3], lonlat=TRUE)
+
+e.gd = evaluate(model=gd, p=sp.occur, a=background)
+#EMG NOTE: no error for p,a if columns not specified
+
+p.gd = predict(gd, future.predictors)
+
+writeRaster(p.gd, paste(outdir, "ABT_geoDistance", sep=""), format="ascii")
+#	format="GTiff", 
+#	options=c("PHOTOMETRIC=CMYK", "JPEG_QUALITY=75", "COMPRESS=NONE"),
+#	overwrite=TRUE)
+# format="GTiff" not show the area, it's very faint in asc
+
 
 ###############
 #
@@ -246,20 +238,76 @@ writeRaster(p.brt, paste(outdir, "ABT_brt", sep=""), format="ascii")
 #
 ###############
 
+ch = convHull(p=sp.occur[,2:3], lonlat=TRUE)
+
+e.ch = evaluate(model=ch, p=sp.occur[,2:3], a=background[,2:3])
+#EMG NOTE: error for p,a if columns not specified
+
+p.ch = predict(ch, future.predictors)
+
+writeRaster(p.ch, paste(outdir, "ABT_convexHulls", sep=""), format="ascii")
+#	format="GTiff", 
+#	options=c("PHOTOMETRIC=CMYK", "JPEG_QUALITY=75", "COMPRESS=NONE"),
+#	overwrite=TRUE)
+
+
 ###############
 #
 # CIRCLES
 #
 ###############
 
+#trace(circles)
+#c = circles(p=sp.occur[,2:3], lonlat=TRUE, r=6378137)
+#Error in pointDistance(xy[i, ], xy, longlat = TRUE, r = r) : 
+#	object 'r' not found
+
+#e.c = evaluate(model=c, p=sp.occur[,2:3], a=background[,2:3])
+#p.c = predict(c, future.predictors)
+#writeRaster(p.c, paste(outdir, "ABT_circles", sep=""), format="ascii")
+#	format="GTiff", 
+#	options=c("PHOTOMETRIC=CMYK", "JPEG_QUALITY=75", "COMPRESS=NONE"),
+#	overwrite=TRUE)
+
+
+############### Spatial-only models for presence/background (or absence) data ###############
+
 ###############
 #
-# GEOIDW
+# GEOIDW - inverse distance weighted interpolation
 #
 ###############
+
+library(gstat)
+
+gidw = geoIDW(p=sp.occur[,2:3], a=background[,2:3])
+
+e.gidw = evaluate(model=gidw, p=sp.occur[,2:3], a=background[,2:3])
+
+p.gidw = predict(gidw, future.predictors)
+
+writeRaster(p.gidw, paste(outdir, "ABT_geoIDW", sep=""), format="ascii")
+#	format="GTiff", 
+#	options=c("PHOTOMETRIC=CMYK", "JPEG_QUALITY=75", "COMPRESS=NONE"),
+#	overwrite=TRUE)
+
 
 ###############
 #
 # VORONOIHULL
 #
 ###############
+
+library(deldir)
+
+vh = voronoiHull(p=sp.occur[,2:3], a=background[,2:3])
+
+#e.vh = evaluate(model=vh, p=sp.occur[,2:3], a=background[,2:3])
+#Error: cannot allocate vector of size 10.0 Gb
+
+p.vh = predict(vh, future.predictors)
+
+writeRaster(p.gidw, paste(outdir, "ABT_voronoiHull", sep=""), format="ascii")
+#	format="GTiff", 
+#	options=c("PHOTOMETRIC=CMYK", "JPEG_QUALITY=75", "COMPRESS=NONE"),
+#	overwrite=TRUE)
