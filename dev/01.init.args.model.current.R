@@ -67,7 +67,7 @@ if (model.maxent) {
 	biasfile=NULL
 	testsamplesfile=NULL
 	replicates=1
-	replicatetype=crossvalidate #options include crossvalidate, bootstrap, subsample
+	replicatetype="crossvalidate" #options include crossvalidate, bootstrap, subsample
 	linear=TRUE
 	quadratic=TRUE
 	product=TRUE

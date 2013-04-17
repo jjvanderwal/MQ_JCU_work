@@ -1,6 +1,6 @@
 #script to run to develop distribution models
 
-source("01.init.args.model.current.R") #read in the initial arguments
+source("/home/jc165798/SCRIPTS/git_code/MQ_JCU_work/dev/01.init.args.model.current.R") #read in the initial arguments
 
 ###check if libraries are installed, install if necessary and then load them
 necessary=c("dismo","SDMTools","gbm","gstat","deldir") #list the libraries needed
@@ -10,15 +10,21 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 
 ###read in the necessary observation, background and environmental data
 setwd(wd) #set the working directory
-occur = read.csv(occur.data) #read in the observation data lon/lat
-bkgd = read.csv(bkgd.data) #read in teh background position data lon.lat
-for (ii in 1:length(enviro.data)) { cat(ii,'of',length(enviro.data),'\n') #cycle through each of the environmental datasets and append the data
-	tasc = read.asc(enviro.data[ii]) #read in the envirodata
-	occur[,enviro.data.names[ii]] = extract.data(cbind(occur$lon,occur$lat),tasc) #extract envirodata for observations
-	bkgd[,enviro.data.names[ii]] = extract.data(cbind(bkgd$lon,bkgd$lat),tasc) #extract envirodata for background data
+populate.data = FALSE #variable to define if there is a need to generate occur & background environmental info
+if (file.exists("occur.RData") && file.exists("bkgd.RData")) {
+	load("occur.RData"); load("bkgd.RData"); #if files already exist, load in the data
+	if (!all(colnames(occur)==c('lon','lat',enviro.data.names))) { populate.data=TRUE } #not data we need to repopulate it
 }
-save(occur,file="occur.RData"); save(bkgd,file="bkgd.RData") #write out the raw data for analysis
-
+if (populate.data) {
+	occur = read.csv(occur.data) #read in the observation data lon/lat
+	bkgd = read.csv(bkgd.data) #read in teh background position data lon.lat
+	for (ii in 1:length(enviro.data)) { cat(ii,'of',length(enviro.data),'\n') #cycle through each of the environmental datasets and append the data
+		tasc = read.asc(enviro.data[ii]) #read in the envirodata
+		occur[,enviro.data.names[ii]] = extract.data(cbind(occur$lon,occur$lat),tasc) #extract envirodata for observations
+		bkgd[,enviro.data.names[ii]] = extract.data(cbind(bkgd$lon,bkgd$lat),tasc) #extract envirodata for background data
+	}
+	save(occur,file="occur.RData"); save(bkgd,file="bkgd.RData") #write out the raw data for analysis
+}
 ###run the models and store models
 
 #################################################################################
@@ -163,12 +169,12 @@ if (model.convHull) {
 # lonlat are these longitude/latitude data? default value is false
 # r radius of the earth; only relevant for longitude/latitude data; default is 6378137 m
 
-# if (model.circles) {
-	# outdir = paste(wd,'output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	# cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
-	# save(cc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	#rm(cc); #clean up memory
-# }
+if (model.circles) {
+	outdir = paste(wd,'output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
+	save(cc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	rm(cc); #clean up memory
+}
 
 ############### Spatial-only models for presence/background (or absence) data ###############
 
@@ -384,41 +390,60 @@ if (model.brt) {
 # nodata -- integer -- -9999 -- Value to be interpreted as nodata values in SWD sample data
 
 if (model.maxent) {
-
-
+	outdir = paste(wd,'output_maxent/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	write.csv(data.frame(species=species,occur),paste(outdir,"occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
+	write.csv(data.frame(species="bkgd",bkgd),paste(outdir,"bkgd.csv",sep=''),row.names=FALSE)### create bkgd.csv for maxent
+	###not user modified section
+	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
+	tstr = paste(tstr,'environmentallayers=',outdir,'bkgd.csv ',sep='')
+	tstr = paste(tstr,'samplesfile=',outdir,'occur.csv ',sep='')
+	tstr = paste(tstr,'outputdirectory=',outdir,' ',sep='')
+	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')
+	tstr = paste(tstr,'askoverwrite=FALSE skipifexists=FALSE prefixes=TRUE verbose=FALSE ',sep='')
+	tstr = paste(tstr,'responsecurves=TRUE pictures=TRUE jackknife=TRUE writeclampgrid=TRUE ',sep='')
+	tstr = paste(tstr,'writemess=TRUE writebackgroundpredictions=TRUE writeplotdata=TRUE outputgrids=TRUE ',sep='')
+	tstr = paste(tstr,'plots=TRUE appendtoresultsfile=FALSE threads=1 adjustsampleradius=0 ',sep='')
+	tstr = paste(tstr,'logfile=maxent.log cache=TRUE allowpartialdata=FALSE outputfiletype="asc" ',sep='')
+	tstr = paste(tstr,'perspeciesresults=FALSE responsecurvesexponent=FALSE	 ',sep='')
+	if (any(enviro.data.type!='continuous')){
+		catvals = which(enviro.data.type!='continuous')
+		for (ii in catvals) {
+			tstr = paste(tstr,'togglelayertype=',enviro.data.names[ii],' ',sep='') #toggle the layer type
+		}
+	}
+	### based on user modified
+	tstr = paste(tstr,'outputformat=',outputformat,' ',sep='')
+	tstr = paste(tstr,'randomseed=',randomseed,' ',sep='')
+	tstr = paste(tstr,'logscale=',logscale,' ',sep='')
+	tstr = paste(tstr,'removeduplicates=',removeduplicates,' ',sep='')
+	tstr = paste(tstr,'randomtestpoints=',randomtestpoints,' ',sep='')
+	tstr = paste(tstr,'betamultiplier=',betamultiplier,' ',sep='')
+	tstr = paste(tstr,'maximumbackground=',maximumbackground,' ',sep='')
+	tstr = paste(tstr,'biasfile=',biasfile,' ',sep='')
+	tstr = paste(tstr,'testsamplesfile=',testsamplesfile,' ',sep='')
+	tstr = paste(tstr,'replicates=',replicates,' ',sep='')
+	tstr = paste(tstr,'replicatetype=',replicatetype,' ',sep='')
+	tstr = paste(tstr,'linear=',linear,' ',sep='')
+	tstr = paste(tstr,'quadratic=',quadratic,' ',sep='')
+	tstr = paste(tstr,'product=',product,' ',sep='')
+	tstr = paste(tstr,'threshold=',threshold,' ',sep='')
+	tstr = paste(tstr,'hinge=',hinge,' ',sep='')
+	tstr = paste(tstr,'addsamplestobackground=',addsamplestobackground,' ',sep='')
+	tstr = paste(tstr,'addallsamplestobackground=',addallsamplestobackground,' ',sep='')
+	tstr = paste(tstr,'fadebyclamping=',fadebyclamping,' ',sep='')
+	tstr = paste(tstr,'extrapolate=',extrapolate,' ',sep='')
+	tstr = paste(tstr,'autofeature=',autofeature,' ',sep='')
+	tstr = paste(tstr,'doclamp=',doclamp,' ',sep='')
+	tstr = paste(tstr,'maximumiterations=',maximumiterations,' ',sep='')
+	tstr = paste(tstr,'convergencethreshold=',convergencethreshold,' ',sep='')
+	tstr = paste(tstr,'lq2lqptthreshold=',lq2lqptthreshold,' ',sep='')
+	tstr = paste(tstr,'l2lqthreshold=',l2lqthreshold,' ',sep='')
+	tstr = paste(tstr,'hingethreshold=',hingethreshold,' ',sep='')
+	tstr = paste(tstr,'beta_threshold=',beta_threshold,' ',sep='')
+	tstr = paste(tstr,'beta_categorical=',beta_categorical,' ',sep='')
+	tstr = paste(tstr,'beta_lqp=',beta_lqp,' ',sep='')
+	tstr = paste(tstr,'beta_hinge=',beta_hinge,' ',sep='')
+	tstr = paste(tstr,'defaultprevalence=',defaultprevalence,' ',sep='')
+	tstr = paste(tstr,'nodata=',nodata,' ',sep='')
+	system(tstr)	
 }
-outputdirectory=
-projectionlayers=
-samplesfile=
-environmentallayers=
-autorun=TRUE #this must stay true
-visible=FALSE
-t.warnings=TRUE
-tooltips=FALSE
-askoverwrite=FALSE
-skipifexists=FALSE
-prefixes=TRUE
-#applythresholdrule=
-#togglelayertype=
-#togglespeciesselected=
-#togglelayerselected=
-verbose=FALSE
-responsecurves=TRUE
-pictures=TRUE
-jackknife=TRUE
-writeclampgrid=TRUE
-writemess=TRUE
-writebackgroundpredictions=TRUE
-writeplotdata=TRUE
-outputgrids=TRUE
-plots=TRUE
-appendtoresultsfile=FALSE
-threads=1
-adjustsampleradius=0
-logfile=maxent.log
-cache=TRUE
-allowpartialdata=FALSE
-outputfiletype='asc' #not an enduser option
-perspeciesresults=FALSE #not an enduser option
-	responsecurvesexponent=FALSE
-	
