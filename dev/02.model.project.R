@@ -129,22 +129,31 @@ if (project.brt) {
 	rm(list=c("brt.obj", "brt.proj")); #clean up the memory
 }
 
-#if (project.maxent) {
+if (project.maxent) {
 
 	#*************** UNDER CONSTRUCTION ***************
 	# maxent model creation was run as a system call outside of R, need to do the same for projection
 	# EMG check to see if argument defaults / modifiables are the same as during creation
 
+	# load java
+	#system("module load java")
+	# EMG Error "sh: module: command not found" when executing this in R
+	
+	# create output directory
+	model.dir = paste(wd, "output_maxent/", sep="")
+	outdir = paste(model.dir, "project_", predictors[[s]][[1]], sep=""); dir.create(outdir,recursive=TRUE);
+	
 	### not user modified section
-#	tstr = ("module load java\n")
-#	tstr = paste(tstr, "java -cp ", maxent.jar, " density.Project ", wd, "output_maxent/ABT.lambdas ", sep="")
+	tstr = paste("java -cp ", maxent.jar, " density.Project ", wd, "output_maxent/ABT.lambdas ", sep="")
 	# where to find the climate scenarios
-#	tstr = paste(tstr, enviro.data.dir, "/", scenarios[s], " ", sep="")
+	tstr = paste(tstr, enviro.data.dir, "/", scenarios[s], " ", sep="")
 	# where to put the output
-#	tstr = paste(tstr, wd, "output_maxent/", scenarios[s], "/projection.asc", sep="")
+	tstr = paste(tstr, outdir, "/", scenarios[s], ".asc", sep="")
 	# optional arguments
-#	tstr = paste(tstr, " nowriteclampgrid nowritemess fadebyclamping", sep="")
-#	system(tstr)
-#}
+	tstr = paste(tstr, " nowriteclampgrid nowritemess fadebyclamping cache=FALSE", sep="")
+	system(tstr)
+	
+	# EMG 'outputfiletype' = asc, mxe, grd, bil only NOT geotiff; can create *.png ('pictures=TRUE')
+}
 
 } # end for predictors

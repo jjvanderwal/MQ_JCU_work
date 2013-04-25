@@ -10,17 +10,17 @@ enviro.data.names <- c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
 	# EMG Not sure if this is needed, might use to check layers prior to predicting DOMAIN
 
 ### define the models to be used for projection
-project.bioclim = TRUE #boolean to project BIOCLIM algorithm 
-project.domain = TRUE #boolean to project DOMAIN algorithm -- envirodata should have same number of data layers as model creation
-project.mahal = TRUE #boolean to project MAHALANOBIS algorithm
-project.geodist = TRUE #boolean to project geographic distances algorithm
-project.convHull = TRUE #boolean to project convex hulls algorithm 
-project.circles = TRUE #boolean to project circles algorithm 
-project.geoIDW = TRUE #boolean to project inverse distance weighted algorithm
-project.voronoiHull = TRUE #boolean to project Voronoi Hulls algorithm
-project.brt = TRUE #boolean to project Boosted regression tree algorithm
+project.bioclim = FALSE #boolean to project BIOCLIM algorithm 
+project.domain = FALSE #boolean to project DOMAIN algorithm -- envirodata should have same number of data layers as model creation
+project.mahal = FALSE #boolean to project MAHALANOBIS algorithm
+project.geodist = FALSE #boolean to project geographic distances algorithm
+project.convHull = FALSE #boolean to project convex hulls algorithm 
+project.circles = FALSE #boolean to project circles algorithm 
+project.geoIDW = FALSE #boolean to project inverse distance weighted algorithm
+project.voronoiHull = FALSE #boolean to project Voronoi Hulls algorithm
+project.brt = FALSE #boolean to project Boosted regression tree algorithm
 
-project.maxent = FALSE #boolean to project maxent algorithm
+project.maxent = TRUE #boolean to project maxent algorithm
 if (project.maxent) {
 	maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar" #define location of maxent.jar file
 }
