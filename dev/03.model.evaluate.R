@@ -9,8 +9,13 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
+for (spp in species) {
+
+wd = paste(wd, spp, sep="")
 setwd(wd)
+
 load("occur.RData"); load("bkgd.RData"); #load in the data
+# EMG need to add some error handling in case files aren't there
 
 ###############
 #
@@ -65,7 +70,7 @@ getModelObject = function(model.name) {
 # function to save evaluate output
 saveModelEvaluation = function(out.model, model.name) {
 	
-	model.dir = paste(wd, "output_", model.name, "/", sep="")	# set the output directory for eval object
+	model.dir = paste(wd, "/output_", model.name, "/", sep="")	# set the output directory for eval object
 	save(out.model, file=paste(model.dir, "eval.object.RData", sep=''))	# save the 'ModelEvalution' object
 
 	# Elith et al 2006 compares the AUC, COR, and Kappa values to assess predictive performance
@@ -157,7 +162,85 @@ if (evaluate.brt) {
 }
 
 if (evaluate.maxent) {
+	# read in the Maxent predictions at the presence and background points, and 
+	#	extract the columns we need
+	model.dir <- paste(wd, "/output_maxent", sep="")
+	presence <- read.csv(paste(model.dir, "/", spp, "_samplePredictions.csv", sep=""))
+	background <- read.csv(paste(model.dir, "/", spp, "_backgroundPredictions.csv", sep=""))
+	p <- presence$Logistic.prediction
+	a <- background$logistic
+	
+	# use predictions to generate ModelEvaluation() per dismo package (copy code from evaluate.R)
+	# evaluate() default thresholds are one per prediction, unless > 1000
+	
+	np <- length(p)
+	na <- length(a)
 
-	# EMG I believe maxent does model evaluation during fitting
-	cat(paste("See MAXENT output directory: ", wd, "output_maxent/\n", sep=""))
+		if (length(p) > 1000) {
+			tr <- as.vector(quantile(p, 0:1000/1000))
+		} else {
+			tr <- p
+		}
+		if (length(a) > 1000) {
+			tr <- c(tr, as.vector(quantile(a, 0:1000/1000)))
+		} else {
+			tr <- c(tr, a)
+		}
+		tr <- sort(unique( round(tr, 8)))
+		tr <- c( tr - 0.0001, tr[length(tr)] + c(0, 0.0001))
+		
+		N <- na + np
+
+	xc <- new('ModelEvaluation')
+	xc@presence = p
+	xc@absence = a
+		
+	R <- sum(rank(c(p, a))[1:np]) - (np*(np+1)/2)
+	xc@auc <- R / (na * np)
+	
+	cr <- try( cor.test(c(p,a), c(rep(1, length(p)), rep(0, length(a))) ), silent=TRUE )
+	if (class(cr) != 'try-error') {
+		xc@cor <- cr$estimate
+		xc@pcor <- cr$p.value
+	}
+	
+	res <- matrix(ncol=4, nrow=length(tr))
+	colnames(res) <- c('tp', 'fp', 'fn', 'tn')
+	xc@t <- tr
+	for (i in 1:length(tr)) {
+		res[i,1] <- length(p[p>=tr[i]])  # a  true positives
+		res[i,2] <- length(a[a>=tr[i]])  # b  false positives
+		res[i,3] <- length(p[p<tr[i]])    # c  false negatives
+		res[i,4] <- length(a[a<tr[i]])    # d  true negatives
+	}
+	xc@confusion = res
+	a = res[,1]
+	b = res[,2]
+	c = res[,3]
+	d = res[,4]
+# after Fielding and Bell	
+	xc@np <- as.integer(np)
+	xc@na <- as.integer(na)
+	xc@prevalence = (a + c) / N
+	xc@ODP = (b + d) / N
+	xc@CCR = (a + d) / N
+	xc@TPR = a / (a + c)
+	xc@TNR = d / (b + d)
+	xc@FPR = b / (b + d)
+	xc@FNR = c/(a + c)
+	xc@PPP = a/(a + b)
+	xc@NPP = d/(c + d)
+	xc@MCR = (b + c)/N
+	xc@OR = (a*d)/(c*b)
+
+	prA = (a+d)/N
+	prY = (a+b)/N * (a+c)/N
+	prN = (c+d)/N * (b+d)/N
+	prE = prY + prN
+	xc@kappa = (prA - prE) / (1-prE)
+	
+	saveModelEvaluation(xc, "maxent")	# save output
+	rm(list=c(xc)); #clean up the memory
 }
+
+} # end for species

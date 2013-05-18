@@ -1,8 +1,8 @@
 #initial arguments used to evaluate models
 
 #wd <- "/home/jc165798/working/BCCVL/models/ABT/" 	#define the core working directory
-wd <- "/home/jc140298/ABT/" 
-species <- "ABT"	#define the species of interest
+wd <- "/home/jc140298/bccvl/" 
+species <- c("ABT")	#define the species of interest
 
 ### define the models to be used for evaluation
 evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 
@@ -14,11 +14,8 @@ evaluate.circles = TRUE #boolean to evaluate circles algorithm
 evaluate.geoIDW = TRUE #boolean to evaluate inverse distance weighted algorithm
 evaluate.voronoiHull = TRUE #boolean to evaluate Voronoi Hulls algorithm
 evaluate.brt = TRUE #boolean to evaluate Boosted regression tree algorithm
+evaluate.maxent = TRUE #boolean to evaluate maxent algorithm
 
-evaluate.maxent = FALSE #boolean to evaluate maxent algorithm
-if (evaluate.maxent) {
-	maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar" #define location of maxent.jar file
-}
 
 #*************** UNDER CONSTRUCTION ***************
 	
