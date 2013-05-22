@@ -1,9 +1,13 @@
 #initial arguments used to define the inputs, models, outputs, etc
 
-wd <- "/home/jc165798/working/BCCVL/models/ABT/" #define the core working directory
-species <- "ABT" #define the species of interest
-occur.data <- "/home/jc165798/working/BCCVL/models/ABT/occur.csv" #define the lon/lat of the observation records -- 2 column matrix of longitude and latitude
-bkgd.data <- "/home/jc165798/working/BCCVL/models/ABT/bkgd.csv" #define the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
+#wd <- "/home/jc165798/working/BCCVL/models/ABT/" #define the core working directory
+datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
+wd = "/home/jc140298/bccvl/"
+#species <- c("ABT", "ANTADUS", "ANTFLAV") #define the species of interest
+#occur.data <- "/home/jc165798/working/BCCVL/models/ABT/occur.csv" #define the lon/lat of the observation records -- 2 column matrix of longitude and latitude
+#bkgd.data <- "/home/jc165798/working/BCCVL/models/ABT/bkgd.csv" #define the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
+occur.data.name <- "occur.csv" #define the filename of the lon/lat of the observation records -- 2 column matrix of longitude and latitude
+bkgd.data.name <- "bkgd.csv" #define the filename of the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
 
 enviro.data <- c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
 	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
@@ -18,7 +22,7 @@ enviro.data.names <- c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
 enviro.data.type <- c('continuous','continuous','continuous','continuous',
 	'continuous','continuous','continuous','continuous') #type in terms of continuous or categorical
 
-### defien the models to be use
+### define the models to be used
 model.bioclim = TRUE #boolean to run BIOCLIM algorithm -- all envirodata must be continuous
 model.domain = TRUE #boolean to run DOMAIN algorithm -- all envirodata must be continuous
 model.mahal = TRUE #boolean to run MAHALANOBIS algorithm -- all envirodata must be continuous

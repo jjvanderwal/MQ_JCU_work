@@ -9,7 +9,25 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-
+###############
+#
+# predict(object, x, ext=NULL, filename="", progress='text', ...)
+#
+# object A fitted model of class Bioclim, Domain, MaxEnt, ConvexHull, or Mahalanobis (classes that inherit from DistModel)
+# x  A Raster* object or a data.frame 
+# ext  An extent object to limit the prediction to a sub-region of 'x'. Or an object that can be coerced to an Extent object by extent; such as a Raster* or Spatial* object  
+# filename  Output filename for a new raster; if NA the result is not written to a file but returned with the RasterLayer object, in the data slot  
+# progress  Character. Valid values are "" (no progress bar), "text" and "windows" (on that platform only)  
+# ...  Additional model specific arguments. And additional arguments for file writing as for writeRaster  
+#
+# For maxent models, there is an additional argument 'args' used to pass arguments (options) to the maxent software.
+# For bioclim models, there is an additional argument 'tails' which you can use to ignore the left or right tail of the percentile distribution for a variable.
+# For geoDist models, there is an additional argument fun that allows you to use your own (inverse) distance function, and argument scale=1 that allows you to scale 
+#	the values (distances smaller than this value become one, and the others are divided by this value before computing the inverse distance).
+# For spatial predictions with BRT, randomForest, etc., see 'predict' in the Raster package
+#
+###############
+ 
 ### read in the environmental data
 # get list of directories, each directory should have env files related to a climate scenario
 scenarios = list.files(enviro.data.dir)
@@ -25,7 +43,7 @@ for (f in 1:length(scenarios)) {
 # function to get model object
 getModelObject = function(model.name) {
 
-	model.dir = paste(wd, "output_", model.name, "/", sep="")
+	model.dir = paste(wd, sp, "/output_", model.name, "/", sep="")
 	model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
 	return (model.obj)
 }
@@ -33,13 +51,33 @@ getModelObject = function(model.name) {
 # function to save project output
 saveModelProjection = function(out.model, model.name, proj.name) {
 	
-	model.dir = paste(wd, "output_", model.name, "/", sep="")
+	model.dir = paste(wd, sp, "/output_", model.name, "/", sep="")
 	outdir = paste(model.dir, "project_", proj.name, sep=""); dir.create(outdir,recursive=TRUE);
 	writeRaster(out.model, paste(outdir, proj.name, sep="/"), format="GTiff")
 }
 
-# for each set of predictors 
+# get a list of species names from the data directory
+species =  list.files(datadir, full.names=FALSE)
+
+# for each species
+for (sp in species) {
+
+# for each set of predictors (one set per climate scenarios)
 for (s in 1:length(predictors)) {
+
+###############
+#
+# BIOCLIM
+#
+###############
+
+# bioclim(x, p, ...)
+# x is a Raster* object or matrix
+# p is a two column matrix or SpatialPoints* object
+# if p is missing, x is a matrix of values of env vars at known locations of occurrence
+# if p is present, it is the location of occurrence and used to extract values for env vars from x,
+#	a Raster* object
+# NOTE: env vars must be numerical
 	
 if (project.bioclim) {
 
@@ -140,11 +178,11 @@ if (project.maxent) {
 	# EMG Error "sh: module: command not found" when executing this in R
 	
 	# create output directory
-	model.dir = paste(wd, "output_maxent/", sep="")
+	model.dir = paste(wd, sp, "/output_maxent/", sep="")
 	outdir = paste(model.dir, "project_", predictors[[s]][[1]], sep=""); dir.create(outdir,recursive=TRUE);
 	
 	### not user modified section
-	tstr = paste("java -cp ", maxent.jar, " density.Project ", wd, "output_maxent/ABT.lambdas ", sep="")
+	tstr = paste("java -cp ", maxent.jar, " density.Project ", model.dir, sp, ".lambdas ", sep="")
 	# where to find the climate scenarios
 	tstr = paste(tstr, enviro.data.dir, "/", scenarios[s], " ", sep="")
 	# where to put the output
@@ -157,3 +195,5 @@ if (project.maxent) {
 }
 
 } # end for predictors
+
+} # end for species

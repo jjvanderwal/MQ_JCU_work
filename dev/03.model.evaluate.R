@@ -9,12 +9,13 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-for (spp in species) {
+# get a list of species names from the data directory
+species =  list.files(datadir, full.names=FALSE)
 
-wd = paste(wd, spp, sep="")
-setwd(wd)
+for (sp in species) {
 
-load("occur.RData"); load("bkgd.RData"); #load in the data
+spwddir = paste(wd, sp, "/", sep="")
+load(paste(spwddir, "occur.RData", sep="")); load(paste(spwddir, "bkgd.RData", sep="")); #load in the data
 # EMG need to add some error handling in case files aren't there
 
 ###############
@@ -62,7 +63,7 @@ load("occur.RData"); load("bkgd.RData"); #load in the data
 # function to get model object
 getModelObject = function(model.name) {
 
-	model.dir = paste(wd, "output_", model.name, "/", sep="")
+	model.dir = paste(spwddir, "output_", model.name, "/", sep="")
 	model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
 	return (model.obj)
 }
@@ -70,7 +71,7 @@ getModelObject = function(model.name) {
 # function to save evaluate output
 saveModelEvaluation = function(out.model, model.name) {
 	
-	model.dir = paste(wd, "/output_", model.name, "/", sep="")	# set the output directory for eval object
+	model.dir = paste(spwddir, "/output_", model.name, "/", sep="")	# set the output directory for eval object
 	save(out.model, file=paste(model.dir, "eval.object.RData", sep=''))	# save the 'ModelEvalution' object
 
 	# Elith et al 2006 compares the AUC, COR, and Kappa values to assess predictive performance
@@ -164,9 +165,9 @@ if (evaluate.brt) {
 if (evaluate.maxent) {
 	# read in the Maxent predictions at the presence and background points, and 
 	#	extract the columns we need
-	model.dir <- paste(wd, "/output_maxent", sep="")
-	presence <- read.csv(paste(model.dir, "/", spp, "_samplePredictions.csv", sep=""))
-	background <- read.csv(paste(model.dir, "/", spp, "_backgroundPredictions.csv", sep=""))
+	model.dir <- paste(spwddir, "/output_maxent", sep="")
+	presence <- read.csv(paste(model.dir, "/", sp, "_samplePredictions.csv", sep=""))
+	background <- read.csv(paste(model.dir, "/", sp, "_backgroundPredictions.csv", sep=""))
 	p <- presence$Logistic.prediction
 	a <- background$logistic
 	
@@ -240,7 +241,7 @@ if (evaluate.maxent) {
 	xc@kappa = (prA - prE) / (1-prE)
 	
 	saveModelEvaluation(xc, "maxent")	# save output
-	rm(list=c(xc)); #clean up the memory
+	rm(xc); #clean up the memory
 }
 
 } # end for species

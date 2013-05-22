@@ -2,7 +2,7 @@
 
 #wd <- "/home/jc165798/working/BCCVL/models/ABT/" 	#define the core working directory
 wd <- "/home/jc140298/bccvl/" 
-species <- c("ABT")	#define the species of interest
+#species <- c("ABT", "ANTADUS", "ANTFLAV")	#define the species of interest
 
 ### define the models to be used for evaluation
 evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 
