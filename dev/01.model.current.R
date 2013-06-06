@@ -9,21 +9,18 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-# get a list of species names from the data directory
-species =  list.files(datadir, full.names=FALSE)
-
+# for each species
 for (sp in species) {
 
 ###read in the necessary observation, background and environmental data
 spdatadir = paste(datadir, sp, "/", sep="")
 spwddir = paste(wd, sp, "/", sep=""); dir.create(spwddir,recursive=TRUE); #create the output directory
-#setwd(wd) #set the working directory
 
-populate.data = TRUE #variable to define if there is a need to generate occur & background environmental info
+populate.data = FALSE #variable to define if there is a need to generate occur & background environmental info
 if (file.exists(paste(datadir, sp, "/occur.RData", sep="")) && file.exists(paste(datadir, sp, "/bkgd.RData"))) {
-	load(paste(datadir, sp, "/occur.RData", sep="")); load(paste(datadir, sp, "/bkgd.RData")); #if files already exist, load in the data
-	if (!all(colnames(occur)==c('lon','lat',enviro.data.names))) { populate.data=TRUE } #not data we need to repopulate it
-}
+	load(paste(datadir, sp, "/occur.RData", sep="")); load(paste(datadir, sp, "/bkgd.RData", sep="")); #if files already exist, load in the data
+	if (!all(colnames(occur)==c('lon','lat',enviro.data.names))) { populate.data=TRUE } #not the right data, we need to repopulate it
+} else { populate.data=TRUE } # data does not exist, we need to generate it
 if (populate.data) {
 	occur = read.csv(paste(spdatadir, occur.data.name, sep="")) #read in the observation data lon/lat
 	bkgd = read.csv(paste(spdatadir, bkgd.data.name, sep="")) #read in the background position data lon/lat
@@ -61,11 +58,15 @@ if (model.bioclim) {
 		warning("bioclim not run because categorical data cannot be used")
 	} else {
 		outdir = paste(spwddir,'/output_bioclim/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		bc = bioclim(x=occur[,enviro.data.names]) #run bioclim with matrix of enviro data
-		save(bc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-		rm(bc); #clean up memory
-	}
-}
+		tryCatch ({
+			bc = bioclim(x=occur[,enviro.data.names]) #run bioclim with matrix of enviro data
+			save(bc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			rm(bc); #clean up memory
+		}, error = function(e) {
+			print(paste("FAIL!", sp, "model.bioclim", sep=": "))
+		}) # end tryCatch
+	} # end if continuous
+} # end if
 
 ###############
 #
@@ -86,9 +87,13 @@ if (model.domain) {
 		warning("domain not run because categorical data cannot be used")
 	} else {
 		outdir = paste(spwddir,'output_domain/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		dm = domain(x=occur[,enviro.data.names]) #run domain with matrix of enviro data
-		save(dm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-		rm(dm); #clean up memory
+		tryCatch ({		
+			dm = domain(x=occur[,enviro.data.names]) #run domain with matrix of enviro data
+			save(dm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			rm(dm); #clean up memory
+		}, error = function(e) {
+			print(paste("FAIL!", sp, "model.domain", sep=": "))
+		})	# end tryCatch
 	}
 }
 
@@ -111,9 +116,13 @@ if (model.mahal) {
 		warning("Mahal not run because categorical data cannot be used")
 	} else {
 		outdir = paste(spwddir,'output_mahal/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		mm = mahal(x=occur[,enviro.data.names]) #run mahal with matrix of enviro data
-		save(mm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-		rm(mm); #clean up memory
+		tryCatch ({
+			mm = mahal(x=occur[,enviro.data.names]) #run mahal with matrix of enviro data
+			save(mm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			rm(mm); #clean up memory
+		}, error = function(e) {
+			print(paste("FAIL!", sp, "model.mahal", sep=": "))
+		}) # end tryCatch		
 	}
 }
 
@@ -140,9 +149,13 @@ if (model.mahal) {
 
 if (model.geodist) {
 	outdir = paste(spwddir,'output_geodist/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	gd = geoDist(p=occur[,c('lon','lat')], lonlat=TRUE) #run geodist 
-	save(gd,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(gd); #clean up memory
+	tryCatch ({
+		gd = geoDist(p=occur[,c('lon','lat')], lonlat=TRUE) #run geodist 
+		save(gd,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(gd); #clean up memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.geodist", sep=": "))
+	}) # end tryCatch
 }
 
 ###############
@@ -159,9 +172,13 @@ if (model.geodist) {
 
 if (model.convHull) {
 	outdir = paste(spwddir,'output_convHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	ch = convHull(p=occur[,c('lon','lat')]) #run convex hull 
-	save(ch,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(ch); #clean up memory
+	tryCatch ({
+		ch = convHull(p=occur[,c('lon','lat')]) #run convex hull 
+		save(ch,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(ch); #clean up memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.convHull", sep=": "))
+	}) # end tryCatch		
 }
 
 ###############
@@ -180,9 +197,13 @@ if (model.convHull) {
 
 if (model.circles) {
 	outdir = paste(spwddir,'output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
-	save(cc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(cc); #clean up memory
+	tryCatch ({
+		cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
+		save(cc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(cc); #clean up memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.circles", sep=": "))
+	}) # end tryCatch
 }
 
 ############### Spatial-only models for presence/background (or absence) data ###############
@@ -200,9 +221,13 @@ if (model.circles) {
 
 if (model.geoIDW) {
 	outdir = paste(spwddir,'output_geoIDW/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	gidw = geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
-	save(gidw,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(gidw); #clean up the memory
+	tryCatch ({
+		gidw = geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
+		save(gidw,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(gidw); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.geoIDW", sep=": "))
+	}) # end tryCatch
 }
 
 ###############
@@ -217,9 +242,13 @@ if (model.geoIDW) {
 
 if (model.voronoiHull) {
 	outdir = paste(spwddir,'output_voronoiHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	vh = voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
-	save(vh,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(vh); #clean up the memory
+	tryCatch ({
+		vh = voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
+		save(vh,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(vh); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.voronoiHull", sep=": "))
+	})
 }
 
 #############################################################################################
@@ -272,33 +301,37 @@ if (model.voronoiHull) {
 
 if (model.brt) {
 	outdir = paste(spwddir,'output_brt/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
-	brt = gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
-		gbm.y=which(names(brt.data)=='pa'), 
-		fold.vector = brt.fold.vector, 
-		tree.complexity = brt.tree.complexity, 
-		learning.rate = brt.learning.rate, 
-		bag.fraction = brt.bag.fraction, 
-		#site.weights = brt.site.weights, 
-		#var.monotone = brt.var.monotone, 
-		n.folds = brt.n.folds, 
-		prev.stratify = brt.prev.stratify, 
-		family = brt.family, 
-		n.trees = brt.n.trees, 
-		step.size = brt.step.size, 
-		max.trees = brt.max.trees, 
-		tolerance.method = brt.tolerance.method, 
-		tolerance = brt.tolerance, 
-		keep.data = brt.keep.data, 
-		plot.main = brt.plot.main, 
-		plot.folds = brt.plot.folds, 
-		verbose = brt.verbose, 
-		silent = brt.silent, 
-		keep.fold.models = brt.keep.fold.models, 
-		keep.fold.vector = brt.keep.fold.vector, 
-		keep.fold.fit = brt.keep.fold.fit) #run the algorithm
-	save(brt,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
-	rm(brt); #clean up the memory
+	tryCatch ({	
+		brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
+		brt = gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
+			gbm.y=which(names(brt.data)=='pa'), 
+			fold.vector = brt.fold.vector, 
+			tree.complexity = brt.tree.complexity, 
+			learning.rate = brt.learning.rate, 
+			bag.fraction = brt.bag.fraction, 
+			#site.weights = brt.site.weights, 
+			#var.monotone = brt.var.monotone, 
+			n.folds = brt.n.folds, 
+			prev.stratify = brt.prev.stratify, 
+			family = brt.family, 
+			n.trees = brt.n.trees, 
+			step.size = brt.step.size, 
+			max.trees = brt.max.trees, 
+			tolerance.method = brt.tolerance.method, 
+			tolerance = brt.tolerance, 
+			keep.data = brt.keep.data, 
+			plot.main = brt.plot.main, 
+			plot.folds = brt.plot.folds, 
+			verbose = brt.verbose, 
+			silent = brt.silent, 
+			keep.fold.models = brt.keep.fold.models, 
+			keep.fold.vector = brt.keep.fold.vector, 
+			keep.fold.fit = brt.keep.fold.fit) #run the algorithm
+		save(brt,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		rm(brt); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "model.brt", sep=": "))
+	}) # end tryCatch
 }
 
 ###############

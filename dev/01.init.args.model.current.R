@@ -1,11 +1,10 @@
 #initial arguments used to define the inputs, models, outputs, etc
 
-#wd <- "/home/jc165798/working/BCCVL/models/ABT/" #define the core working directory
 datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
-wd = "/home/jc140298/bccvl/"
-#species <- c("ABT", "ANTADUS", "ANTFLAV") #define the species of interest
-#occur.data <- "/home/jc165798/working/BCCVL/models/ABT/occur.csv" #define the lon/lat of the observation records -- 2 column matrix of longitude and latitude
-#bkgd.data <- "/home/jc165798/working/BCCVL/models/ABT/bkgd.csv" #define the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
+wd = "/home/jc140298/bccvl/" #define the working directory
+#species <- c("ABT", "ANTADUS", "ANTFLAV")	#define the species of interest
+# get a list of species names from the data directory
+species =  list.files(datadir, full.names=FALSE)
 occur.data.name <- "occur.csv" #define the filename of the lon/lat of the observation records -- 2 column matrix of longitude and latitude
 bkgd.data.name <- "bkgd.csv" #define the filename of the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
 
@@ -51,7 +50,7 @@ if (model.brt) { #additional parameters to set
 	brt.keep.data = FALSE #Logical. keep raw data in final model
 	brt.plot.main = FALSE #Logical. plot hold-out deviance curve
 	brt.plot.folds = FALSE #Logical. plot the individual folds as well
-	brt.verbose = TRUE #Logical. control amount of screen reporting
+	brt.verbose = FALSE #Logical. control amount of screen reporting
 	brt.silent = FALSE #Logical. to allow running with no output for simplifying model)
 	brt.keep.fold.models = FALSE  #Logical. keep the fold models from cross valiation
 	brt.keep.fold.vector = FALSE #Logical. allows the vector defining fold membership to be kept
