@@ -44,8 +44,15 @@ for (f in 1:length(scenarios)) {
 getModelObject = function(model.name) {
 
 	model.dir = paste(wd, sp, "/output_", model.name, "/", sep="")
-	model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
-	return (model.obj)
+	model.obj = NULL
+	tryCatch({
+		model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "Cannot load model.obj from", model.dir, sep=": "))
+	}, finally = {
+		return(model.obj)
+	})
+	# EMG This is ugly, try to make it pretty
 }
 
 # function to save project output
@@ -56,15 +63,12 @@ saveModelProjection = function(out.model, model.name, proj.name) {
 	writeRaster(out.model, paste(outdir, proj.name, sep="/"), format="GTiff")
 }
 
-# get a list of species names from the data directory
-species =  list.files(datadir, full.names=FALSE)
-
 # for each species
 for (sp in species) {
 
 # for each set of predictors (one set per climate scenarios)
-for (s in 1:length(predictors)) {
-
+#for (s in 1:length(predictors)) {
+s=1
 ###############
 #
 # BIOCLIM
@@ -82,89 +86,142 @@ for (s in 1:length(predictors)) {
 if (project.bioclim) {
 
 	bioclim.obj = getModelObject("bioclim")	# get the model object
-	bioclim.proj = predict(bioclim.obj, predictors[[s]][[2]])	# predict for given climate scenario
-	saveModelProjection(bioclim.proj, "bioclim", predictors[[s]][[1]])	# save output
-	rm(list=c("bioclim.obj", "bioclim.proj")); #clean up the memory
-}
+	tryCatch ({
+		bioclim.proj = predict(bioclim.obj, predictors[[s]][[2]], tails=opt.tails, ext=opt.ext)	# predict for given climate scenario
+		saveModelProjection(bioclim.proj, "bioclim", predictors[[s]][[1]])	# save output
+		rm("bioclim.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.bioclim", sep=": "))
+	}, finally = {
+		rm("bioclim.obj") #clean up the memory
+	}) # end tryCatch
+} # end if bioclim
 	
 if (project.domain) {
 
 	domain.obj = getModelObject("domain") # get the model object
-	# have to drop env layers for DOMAIN if they weren't in original model
-	# get the names of the env layers used to create DOMAIN model
-	domain.layers = colnames(domain.obj@presence)	# should be the same as 'enviro.data.names'
-	# get the names of the climater scenario's env layers
-	pred.layers = names(predictors[[s]][[2]])
+	tryCatch ({		
+		# have to drop env layers for DOMAIN if they weren't in original model
+		# get the names of the env layers used to create DOMAIN model
+		domain.layers = colnames(domain.obj@presence)	# should be the same as 'enviro.data.names'
+		# get the names of the climater scenario's env layers
+		pred.layers = names(predictors[[s]][[2]])
 
-	# create a new list of env predictors by dropping layers not in the original model
-	predictors.dm = predictors[[s]][[2]]
-	for (pl in pred.layers) {
-		if (!(pl %in% domain.layers)) {
-			predictors.dm = dropLayer(predictors.dm, pl)
-		}	
-	}
-
-	domain.proj = predict(domain.obj, predictors.dm) # predict for given climate scenario
-	saveModelProjection(domain.proj, "domain", predictors[[s]][[1]]) 	# save output
-	rm(list=c("domain.obj", "domain.proj")); #clean up the memory
+		# create a new list of env predictors by dropping layers not in the original model
+		predictors.dm = predictors[[s]][[2]]
+		for (pl in pred.layers) {
+			if (!(pl %in% domain.layers)) {
+				predictors.dm = dropLayer(predictors.dm, pl)
+			}	
+		}
+		domain.proj = predict(domain.obj, predictors.dm, ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(domain.proj, "domain", predictors[[s]][[1]]) 	# save output
+		rm("domain.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.domain", sep=": "))
+	}, finally = {
+		rm("domain.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.mahal) {
 	
 	mahal.obj = getModelObject("mahal") # get the model object
-	mahal.proj = predict(mahal.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(mahal.proj, "mahal", predictors[[s]][[1]]) 	# save output
-	rm(list=c("mahal.obj", "mahal.proj")); #clean up the memory
+	tryCatch ({
+		mahal.proj = predict(mahal.obj, predictors[[s]][[2]], ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(mahal.proj, "mahal", predictors[[s]][[1]]) 	# save output
+		rm("mahal.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.mahal", sep=": "))
+	}, finally = {
+		rm("mahal.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.geodist) {
 	
 	geodist.obj = getModelObject("geodist") # get the model object
-	geodist.proj = predict(geodist.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(geodist.proj, "geodist", predictors[[s]][[1]]) 	# save output
-	rm(list=c("geodist.obj", "geodist.proj")); #clean up the memory
+	tryCatch ({
+		geodist.proj = predict(geodist.obj, predictors[[s]][[2]], ext=opt.ext, scale=opt.scale) # predict for given climate scenario
+		saveModelProjection(geodist.proj, "geodist", predictors[[s]][[1]]) 	# save output
+		rm("geodist.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.geodist", sep=": "))
+	}, finally = {
+		rm("geodist.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.convHull) {
 	
 	convHull.obj = getModelObject("convHull") # get the model object
-	convHull.proj = predict(convHull.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(convHull.proj, "convHull", predictors[[s]][[1]]) 	# save output
-	rm(list=c("convHull.obj", "convHull.proj")); #clean up the memory
+	tryCatch ({
+		convHull.proj = predict(convHull.obj, predictors[[s]][[2]], ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(convHull.proj, "convHull", predictors[[s]][[1]]) 	# save output
+		rm("convHull.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.convHull", sep=": "))
+	}, finally = {
+		rm("convHull.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.circles) {
 	
 	circles.obj = getModelObject("circles") # get the model object
-	circles.proj = predict(circles.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(circles.proj, "circles", predictors[[s]][[1]]) 	# save output
-	rm(list=c("circles.obj", "circles.proj")); #clean up the memory
+	tryCatch ({
+		circles.proj = predict(circles.obj, predictors[[s]][[2]], ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(circles.proj, "circles", predictors[[s]][[1]]) 	# save output
+		rm("circles.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.circles", sep=": "))
+	}, finally = {
+		rm("circles.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.geoIDW) {
 	
 	geoIDW.obj = getModelObject("geoIDW") # get the model object
-	geoIDW.proj = predict(geoIDW.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(geoIDW.proj, "geoIDW", predictors[[s]][[1]]) 	# save output
-	rm(list=c("geoIDW.obj", "geoIDW.proj")); #clean up the memory
+	tryCatch ({
+		geoIDW.proj = predict(geoIDW.obj, predictors[[s]][[2]], ext=opt.ext, fun=opt.fun) # predict for given climate scenario
+		saveModelProjection(geoIDW.proj, "geoIDW", predictors[[s]][[1]]) 	# save output
+		rm("geoIDW.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.geoIDW", sep=": "))
+	}, finally = {
+		rm("geoIDW.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.voronoiHull) {
 	
 	voronoiHull.obj = getModelObject("voronoiHull") # get the model object
-	voronoiHull.proj = predict(voronoiHull.obj, predictors[[s]][[2]]) # predict for given climate scenario
-	saveModelProjection(voronoiHull.proj, "voronoiHull", predictors[[s]][[1]]) 	# save output
-	rm(list=c("voronoiHull.obj", "voronoiHull.proj")); #clean up the memory
+	tryCatch ({
+		voronoiHull.proj = predict(voronoiHull.obj, predictors[[s]][[2]], ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(voronoiHull.proj, "voronoiHull", predictors[[s]][[1]]) 	# save output
+		rm("voronoiHull.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.voronoiHull", sep=": "))
+	}, finally = {
+		rm("voronoiHull.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.brt) {
 	
 	brt.obj = getModelObject("brt") # get the model object
-	# NOTE the order of arguments in the  predict function for brt; this is because
-	#	the function is defined outside of the dismo package
-	brt.proj = predict(predictors[[s]][[2]], brt.obj, n.trees=brt.obj$gbm.call$best.trees) # predict for given climate scenario
-	saveModelProjection(brt.proj, "brt", predictors[[s]][[1]]) 	# save output
-	rm(list=c("brt.obj", "brt.proj")); #clean up the memory
+	tryCatch ({
+		# NOTE the order of arguments in the  predict function for brt; this is because
+		#	the function is defined outside of the dismo package
+		brt.proj = predict(predictors[[s]][[2]], brt.obj, n.trees=brt.obj$gbm.call$best.trees, ext=opt.ext) # predict for given climate scenario
+		saveModelProjection(brt.proj, "brt", predictors[[s]][[1]]) 	# save output
+		rm("brt.proj"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "project.brt", sep=": "))
+	}, finally = {
+		rm("brt.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (project.maxent) {
@@ -194,6 +251,6 @@ if (project.maxent) {
 	# EMG 'outputfiletype' = asc, mxe, grd, bil only NOT geotiff; can create *.png ('pictures=TRUE')
 }
 
-} # end for predictors
+#} # end for predictors
 
 } # end for species
