@@ -67,8 +67,8 @@ saveModelProjection = function(out.model, model.name, proj.name) {
 for (sp in species) {
 
 # for each set of predictors (one set per climate scenarios)
-#for (s in 1:length(predictors)) {
-s=1
+for (s in 1:length(predictors)) {
+
 ###############
 #
 # BIOCLIM
@@ -251,6 +251,6 @@ if (project.maxent) {
 	# EMG 'outputfiletype' = asc, mxe, grd, bil only NOT geotiff; can create *.png ('pictures=TRUE')
 }
 
-#} # end for predictors
+} # end for predictors
 
 } # end for species

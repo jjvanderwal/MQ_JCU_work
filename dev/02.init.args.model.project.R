@@ -2,9 +2,9 @@
 
 datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
 wd <- "/home/jc140298/bccvl/" #define the working directory
-species <- c("ABT")	#define the species of interest
+#species <- c("ABT")	#define the species of interest
 # get a list of species names from the data directory
-#species =  list.files(datadir, full.names=FALSE)
+species =  list.files(datadir, full.names=FALSE)
 
 enviro.data.dir <- "/home/jc165798/working/BCCVL/envirodata"	#define the enviro data directory to use
 enviro.data.names <- c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
