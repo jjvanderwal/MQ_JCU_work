@@ -9,15 +9,6 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-# get a list of species names from the data directory
-species =  list.files(datadir, full.names=FALSE)
-
-for (sp in species) {
-
-spwddir = paste(wd, sp, "/", sep="")
-load(paste(spwddir, "occur.RData", sep="")); load(paste(spwddir, "bkgd.RData", sep="")); #load in the data
-# EMG need to add some error handling in case files aren't there
-
 ###############
 #
 # evaluate(p, a, model, x, tr, ...)
@@ -64,8 +55,15 @@ load(paste(spwddir, "occur.RData", sep="")); load(paste(spwddir, "bkgd.RData", s
 getModelObject = function(model.name) {
 
 	model.dir = paste(spwddir, "output_", model.name, "/", sep="")
-	model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
-	return (model.obj)
+	model.obj = NULL
+	tryCatch({
+		model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "Cannot load model.obj from", model.dir, sep=": "))
+	}, finally = {
+		return(model.obj)
+	})
+	# EMG This is ugly, try to make it pretty
 }
 
 # function to save evaluate output
@@ -73,93 +71,175 @@ saveModelEvaluation = function(out.model, model.name) {
 	
 	model.dir = paste(spwddir, "/output_", model.name, "/", sep="")	# set the output directory for eval object
 	save(out.model, file=paste(model.dir, "eval.object.RData", sep=''))	# save the 'ModelEvalution' object
-
+	
+	# true skill statistic (TSS)
+	#tss = sensitivity + specificity - 1 == TPR + TNR - 1
+	# can be derived from evaluate() model output
+	#tss = out.model@TPR + out.model$TNR - 1
+	#EMG one for each confusion matrix, do we want to save them in a separate file?
+	
+	#omission = out.model@FNR
+	#EMG one for each confusion matrix, do we want to save them in a separate file?
+	
 	# Elith et al 2006 compares the AUC, COR, and Kappa values to assess predictive performance
 	# the Area under the Receiver Operating Characteristic curve (AUC) - ability to discriminate between sites where sp if present versus absent
 	# the correlation (COR) - between the observation in the PA dataset and the prediction
 	# Kappa - chance-corrected measure of agreement, requires a threshold
 	elith = c(out.model@auc, as.numeric(out.model@cor), max(out.model@kappa), out.model@t[which.max(out.model@kappa)])
-	write("AUC,COR,maxKAPPA,threshold@MaxKAPPA", file=paste(model.dir, "elith.txt", sep=""), append=TRUE)
-	write(elith, file=paste(model.dir, "elith.txt", sep=""), append=TRUE, sep=",")
+	write("AUC,COR,maxKAPPA,threshold@MaxKAPPA", file=paste(model.dir, "elith.txt", sep=""))
+	write(elith, file=paste(model.dir, "elith.txt", sep=""), sep=",", append=TRUE)
 
 	# save AUC curve
 	png(file=paste(model.dir, "roc.png", sep='')); plot(out.model, 'ROC'); dev.off()
 	
+	# determine and save thresholds
+	# threshold() returns kappa, spec_sens, and no_omission thresholds
+	dismo.thresh = threshold(out.model)
+	minROCdistance = out.model@t[which.min(sqrt((1-out.model@TPR)^2 + (1-out.model@TNR)^2))]
+	write("kappa,spec_sens,no_omission,minROCdistance", file=paste(model.dir, "thresholds.txt", sep=""))
+	write(c(as.numeric(dismo.thresh),minROCdistance), file=paste(model.dir, "thresholds.txt", sep=""), sep=",", append=TRUE)
+
 }
+
+# for each species
+for (sp in species) {
+
+# try to load in the data
+spwddir = paste(wd, sp, "/", sep="")
+tryCatch({
+	load(paste(spwddir, "occur.RData", sep="")) 
+	load(paste(spwddir, "bkgd.RData", sep=""))
+}, error = function(e) {
+	print(paste("FAIL!", sp, "missing data needed to evaluate models", sep=": "))
+}) # end tryCatch	
 
 if (evaluate.bioclim) {
 
 	bioclim.obj = getModelObject("bioclim")	# get the model object
-	bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model
-	saveModelEvaluation(bioclim.eval, "bioclim")	# save output
-	rm(list=c("bioclim.obj", "bioclim.eval")); #clean up the memory
+	tryCatch ({
+		bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model
+		saveModelEvaluation(bioclim.eval, "bioclim")	# save output
+		rm("bioclim.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.bioclim", sep=": "))
+	}, finally = {
+		rm("bioclim.obj") #clean up the memory
+	}) # end tryCatch
 }
 	
 if (evaluate.domain) {
 
 	domain.obj = getModelObject("domain") # get the model object
-	domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model
-	saveModelEvaluation(domain.eval, "domain") 	# save output
-	rm(list=c("domain.obj", "domain.eval")); #clean up the memory
+	tryCatch ({
+		domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model
+		saveModelEvaluation(domain.eval, "domain") 	# save output
+		rm("domain.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.domain", sep=": "))
+	}, finally = {
+		rm("domain.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.mahal) {
 	
 	mahal.obj = getModelObject("mahal") # get the model object
-	mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model
-	saveModelEvaluation(mahal.eval, "mahal") 	# save output
-	rm(list=c("mahal.obj", "mahal.eval")); #clean up the memory
+	tryCatch ({
+		mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model
+		saveModelEvaluation(mahal.eval, "mahal") 	# save output
+		rm("mahal.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.mahal", sep=": "))
+	}, finally = {
+		rm("mahal.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.geodist) {
 	
 	geodist.obj = getModelObject("geodist") # get the model object
-	geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model
-#EMG NOTE: no error for p,a if columns not specified c.f. convHull
-	saveModelEvaluation(geodist.eval, "geodist") 	# save output
-	rm(list=c("geodist.obj", "geodist.eval")); #clean up the memory
+	tryCatch ({
+		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model
+		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
+		saveModelEvaluation(geodist.eval, "geodist") 	# save output
+		rm("geodist.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.geodist", sep=": "))
+	}, finally = {
+		rm("geodist.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.convHull) {
 	
 	convHull.obj = getModelObject("convHull") # get the model object
-	convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-	saveModelEvaluation(convHull.eval, "convHull") 	# save output
-	rm(list=c("convHull.obj", "convHull.eval")); #clean up the memory
+	tryCatch ({
+		convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
+		saveModelEvaluation(convHull.eval, "convHull") 	# save output
+		rm("convHull.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.convHull", sep=": "))
+	}, finally = {
+		rm("convHull.obj") #clean up the memory
+	}) # end tryCatch
 }
 
-if (evaluate.circles) {
+if (evaluate.convHull) {
 	
 	circles.obj = getModelObject("circles") # get the model object
-	circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-	saveModelEvaluation(circles.eval, "circles") 	# save output
-	rm(list=c("circles.obj", "circles.eval")); #clean up the memory
+	tryCatch ({
+		circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
+		saveModelEvaluation(circles.eval, "circles") 	# save output
+		rm("circles.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.convHull", sep=": "))
+	}, finally = {
+		rm("convHull.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.geoIDW) {
 	
 	geoIDW.obj = getModelObject("geoIDW") # get the model object
-	geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-	saveModelEvaluation(geoIDW.eval, "geoIDW") 	# save output
-	rm(list=c("geoIDW.obj", "geoIDW.eval")); #clean up the memory
+	tryCatch ({
+		geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
+		saveModelEvaluation(geoIDW.eval, "geoIDW") 	# save output
+		rm("geoIDW.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.geoIDW", sep=": "))
+	}, finally = {
+		rm("geoIDW.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.voronoiHull) {
 	
 	voronoiHull.obj = getModelObject("voronoiHull") # get the model object
-	voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-	saveModelEvaluation(voronoiHull.eval, "voronoiHull") 	# save output
-	rm(list=c("voronoiHull.obj", "voronoiHull.eval")); #clean up the memory
+	tryCatch ({
+		voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
+		saveModelEvaluation(voronoiHull.eval, "voronoiHull") 	# save output
+		rm("voronoiHull.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.voronoiHull", sep=": "))
+	}, finally = {
+		rm("voronoiHull.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.brt) {
 	
 	brt.obj = getModelObject("brt") # get the model object
-	# NOTE the order of arguments in the  predict function for brt; this is because
-	#	the function is defined outside of the dismo package
-	brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model
-	saveModelEvaluation(brt.eval, "brt") 	# save output
-	rm(list=c("brt.obj", "brt.eval")); #clean up the memory
+	tryCatch ({
+		# NOTE the order of arguments in the  predict function for brt; this is because
+		#	the function is defined outside of the dismo package
+		brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model
+		saveModelEvaluation(brt.eval, "brt") 	# save output
+		rm(	"brt.eval"); #clean up the memory
+	}, error = function(e) {
+		print(paste("FAIL!", sp, "evaluate.brt", sep=": "))
+	}, finally = {
+		rm("brt.obj") #clean up the memory
+	}) # end tryCatch
 }
 
 if (evaluate.maxent) {
