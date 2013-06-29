@@ -1,7 +1,20 @@
 #script to run to develop distribution models
 
-#source("/home/jc165798/SCRIPTS/git_code/MQ_JCU_work/dev/01.init.args.model.current.R") #read in the initial arguments
-source("/home/jc140298/bccvl/01.init.args.model.current.R")
+# read in the arguments listed at the command line in shell script
+args=(commandArgs(TRUE))  
+# check to see if arguments are passed
+if(length(args)==0){
+    print("No arguments supplied.")
+    # leave all args as default values
+} else {
+	for(i in 1:length(args)) { 
+		eval(parse(text=args[[i]])) 
+	}
+	# expecting wd and species to be able to locate arguments file
+}
+
+# load arguments file
+load(paste(wd, "01.init.args.model.current.", species, ".RData", sep=""))
 
 ###check if libraries are installed, install if necessary and then load them
 necessary=c("dismo","SDMTools","gbm","gstat","deldir") #list the libraries needed
@@ -9,30 +22,28 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-# for each species
-for (sp in species) {
-
 ###read in the necessary observation, background and environmental data
-spdatadir = paste(datadir, sp, "/", sep="")
-spwddir = paste(wd, sp, "/", sep=""); dir.create(spwddir,recursive=TRUE); #create the output directory
-
+#setwd(wd) #set the working directory
 populate.data = FALSE #variable to define if there is a need to generate occur & background environmental info
-if (file.exists(paste(datadir, sp, "/occur.RData", sep="")) && file.exists(paste(datadir, sp, "/bkgd.RData"))) {
-	load(paste(datadir, sp, "/occur.RData", sep="")); load(paste(datadir, sp, "/bkgd.RData", sep="")); #if files already exist, load in the data
+if (file.exists(paste(wd, "occur.RData", sep="")) && file.exists(paste(wd, "bkgd.RData", sep=""))) {
+	load(paste(wd, "occur.RData", sep="")); load(paste(wd, "bkgd.RData", sep="")); #if files already exist, load in the data
 	if (!all(colnames(occur)==c('lon','lat',enviro.data.names))) { populate.data=TRUE } #not the right data, we need to repopulate it
 } else { populate.data=TRUE } # data does not exist, we need to generate it
 if (populate.data) {
-	occur = read.csv(paste(spdatadir, occur.data.name, sep="")) #read in the observation data lon/lat
-	bkgd = read.csv(paste(spdatadir, bkgd.data.name, sep="")) #read in the background position data lon/lat
+	occur = read.csv(occur.data) #read in the observation data lon/lat
+	bkgd = read.csv(bkgd.data) #read in teh background position data lon.lat
 	for (ii in 1:length(enviro.data)) { cat(ii,'of',length(enviro.data),'\n') #cycle through each of the environmental datasets and append the data
 		tasc = read.asc(enviro.data[ii]) #read in the envirodata
 		occur[,enviro.data.names[ii]] = extract.data(cbind(occur$lon,occur$lat),tasc) #extract envirodata for observations
 		bkgd[,enviro.data.names[ii]] = extract.data(cbind(bkgd$lon,bkgd$lat),tasc) #extract envirodata for background data
 	}
-	save(occur,file=paste(spwddir, "occur.RData", sep="")); save(bkgd,file=paste(spwddir, "bkgd.RData", sep="")) #write out the raw data for analysis
+	save(occur,file=paste(wd, "occur.RData", sep="")); save(bkgd,file=paste(wd, "bkgd.RData", sep="")) #write out the raw data for analysis
 }
-###run the models and store models
 
+## Needed for tryCatch'ing:
+err.null <- function (e) return(NULL)
+
+###run the models and store models
 #################################################################################
 #
 # PROFILE METHODS - only consider presence points: Bioclim, Domain, and Mahal
@@ -57,14 +68,15 @@ if (model.bioclim) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("bioclim not run because categorical data cannot be used")
 	} else {
-		outdir = paste(spwddir,'/output_bioclim/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		tryCatch ({
-			bc = bioclim(x=occur[,enviro.data.names]) #run bioclim with matrix of enviro data
+		outdir = paste(wd,'output_bioclim/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		bc = tryCatch(bioclim(x=occur[,enviro.data.names]), error = err.null) #run bioclim with matrix of enviro data
+		if (!is.null(bc)) {		
 			save(bc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			save(bc,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 			rm(bc); #clean up memory
-		}, error = function(e) {
-			print(paste("FAIL!", sp, "model.bioclim", sep=": "))
-		}) # end tryCatch
+		} else {
+			write(paste("FAIL!", species, "Cannot create bioclim model object", sep=": "), stdout())
+		}			
 	} # end if continuous
 } # end if
 
@@ -86,14 +98,15 @@ if (model.domain) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("domain not run because categorical data cannot be used")
 	} else {
-		outdir = paste(spwddir,'output_domain/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		tryCatch ({		
-			dm = domain(x=occur[,enviro.data.names]) #run domain with matrix of enviro data
+		outdir = paste(wd,'output_domain/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		dm = tryCatch(domain(x=occur[,enviro.data.names]), error = err.null) #run domain with matrix of enviro data
+		if (!is.null(dm)) {	
 			save(dm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			save(dm,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 			rm(dm); #clean up memory
-		}, error = function(e) {
-			print(paste("FAIL!", sp, "model.domain", sep=": "))
-		})	# end tryCatch
+		} else {
+			write(paste("FAIL!", species, "Cannot create domain model object", sep=": "), stdout())
+		}
 	}
 }
 
@@ -115,14 +128,15 @@ if (model.mahal) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("Mahal not run because categorical data cannot be used")
 	} else {
-		outdir = paste(spwddir,'output_mahal/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-		tryCatch ({
-			mm = mahal(x=occur[,enviro.data.names]) #run mahal with matrix of enviro data
+		outdir = paste(wd,'output_mahal/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		mm = tryCatch(mahal(x=occur[,enviro.data.names]), error = err.null) #run mahal with matrix of enviro data
+		if (!is.null(mm)) {	
 			save(mm,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			save(mm,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 			rm(mm); #clean up memory
-		}, error = function(e) {
-			print(paste("FAIL!", sp, "model.mahal", sep=": "))
-		}) # end tryCatch		
+		} else {
+			write(paste("FAIL!", species, "Cannot create mahal model object", sep=": "), stdout())
+		}
 	}
 }
 
@@ -148,14 +162,15 @@ if (model.mahal) {
 #	argument 'a' should be of the same class as argument 'p'
 
 if (model.geodist) {
-	outdir = paste(spwddir,'output_geodist/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({
-		gd = geoDist(p=occur[,c('lon','lat')], lonlat=TRUE) #run geodist 
+	outdir = paste(wd,'output_geodist/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	gd = tryCatch(geoDist(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run geodist 
+	if (!is.null(gd)) {	
 		save(gd,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(gd,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(gd); #clean up memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.geodist", sep=": "))
-	}) # end tryCatch
+	} else {
+		write(paste("FAIL!", species, "Cannot create geodist model object", sep=": "), stdout())
+	}
 }
 
 ###############
@@ -171,14 +186,15 @@ if (model.geodist) {
 #	the first polygon has 1 part, the second has 2 parts and x has x parts
 
 if (model.convHull) {
-	outdir = paste(spwddir,'output_convHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({
-		ch = convHull(p=occur[,c('lon','lat')]) #run convex hull 
+	outdir = paste(wd,'output_convHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	ch = tryCatch(convHull(p=occur[,c('lon','lat')]), error = err.null) #run convex hull 
+	if (!is.null(ch)) {		
 		save(ch,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(ch,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(ch); #clean up memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.convHull", sep=": "))
-	}) # end tryCatch		
+	} else {
+		write(paste("FAIL!", species, "Cannot create convHull model object", sep=": "), stdout())
+	}
 }
 
 ###############
@@ -196,14 +212,15 @@ if (model.convHull) {
 # r radius of the earth; only relevant for longitude/latitude data; default is 6378137 m
 
 if (model.circles) {
-	outdir = paste(spwddir,'output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({
-		cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
+	outdir = paste(wd,'output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	cc = tryCatch(circles(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run circles 
+	if (!is.null(cc)) {	
 		save(cc,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(cc,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(cc); #clean up memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.circles", sep=": "))
-	}) # end tryCatch
+	} else {
+		write(paste("FAIL!", species, "Cannot create circles model object", sep=": "), stdout())
+	}
 }
 
 ############### Spatial-only models for presence/background (or absence) data ###############
@@ -220,14 +237,15 @@ if (model.circles) {
 # ... none implemented
 
 if (model.geoIDW) {
-	outdir = paste(spwddir,'output_geoIDW/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({
-		gidw = geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
+	outdir = paste(wd,'output_geoIDW/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	gidw = tryCatch(geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
+	if (!is.null(gidw)) {	
 		save(gidw,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(gidw,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(gidw); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.geoIDW", sep=": "))
-	}) # end tryCatch
+	} else {
+		write(paste("FAIL!", species, "Cannot create geoIDW model object", sep=": "), stdout())
+	}
 }
 
 ###############
@@ -241,14 +259,15 @@ if (model.geoIDW) {
 # a absence points; must be of the same class as 'p'
 
 if (model.voronoiHull) {
-	outdir = paste(spwddir,'output_voronoiHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({
-		vh = voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
+	outdir = paste(wd,'output_voronoiHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	vh = tryCatch(voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
+	if (!is.null(vh)) {	
 		save(vh,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(vh,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(vh); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.voronoiHull", sep=": "))
-	})
+	} else {
+		write(paste("FAIL!", species, "Cannot create voronoiHull model object", sep=": "), stdout())
+	}
 }
 
 #############################################################################################
@@ -300,38 +319,39 @@ if (model.voronoiHull) {
 #	to be kept
 
 if (model.brt) {
-	outdir = paste(spwddir,'output_brt/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	tryCatch ({	
-		brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
-		brt = gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
-			gbm.y=which(names(brt.data)=='pa'), 
-			fold.vector = brt.fold.vector, 
-			tree.complexity = brt.tree.complexity, 
-			learning.rate = brt.learning.rate, 
-			bag.fraction = brt.bag.fraction, 
-			#site.weights = brt.site.weights, 
-			#var.monotone = brt.var.monotone, 
-			n.folds = brt.n.folds, 
-			prev.stratify = brt.prev.stratify, 
-			family = brt.family, 
-			n.trees = brt.n.trees, 
-			step.size = brt.step.size, 
-			max.trees = brt.max.trees, 
-			tolerance.method = brt.tolerance.method, 
-			tolerance = brt.tolerance, 
-			keep.data = brt.keep.data, 
-			plot.main = brt.plot.main, 
-			plot.folds = brt.plot.folds, 
-			verbose = brt.verbose, 
-			silent = brt.silent, 
-			keep.fold.models = brt.keep.fold.models, 
-			keep.fold.vector = brt.keep.fold.vector, 
-			keep.fold.fit = brt.keep.fold.fit) #run the algorithm
+	outdir = paste(wd,'output_brt/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
+	brt = tryCatch(gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
+		gbm.y=which(names(brt.data)=='pa'), 
+		fold.vector = brt.fold.vector, 
+		tree.complexity = brt.tree.complexity, 
+		learning.rate = brt.learning.rate, 
+		bag.fraction = brt.bag.fraction, 
+		#site.weights = brt.site.weights, 
+		#var.monotone = brt.var.monotone, 
+		n.folds = brt.n.folds, 
+		prev.stratify = brt.prev.stratify, 
+		family = brt.family, 
+		n.trees = brt.n.trees, 
+		step.size = brt.step.size, 
+		max.trees = brt.max.trees, 
+		tolerance.method = brt.tolerance.method, 
+		tolerance = brt.tolerance, 
+		keep.data = brt.keep.data, 
+		plot.main = brt.plot.main, 
+		plot.folds = brt.plot.folds, 
+		verbose = brt.verbose, 
+		silent = brt.silent, 
+		keep.fold.models = brt.keep.fold.models, 
+		keep.fold.vector = brt.keep.fold.vector, 
+		keep.fold.fit = brt.keep.fold.fit), error = err.null) #run the algorithm
+	if (!is.null(brt)) {	
 		save(brt,file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+		save(brt,file=paste(outdir,"model.object.Rascii",sep=''), ascii=TRUE) #save out the model object as ascii for Daniel
 		rm(brt); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "model.brt", sep=": "))
-	}) # end tryCatch
+	} else {
+		write(paste("FAIL!", species, "Cannot create brt model object", sep=": "), stdout())
+	}
 }
 
 ###############
@@ -432,8 +452,8 @@ if (model.brt) {
 # nodata -- integer -- -9999 -- Value to be interpreted as nodata values in SWD sample data
 
 if (model.maxent) {
-	outdir = paste(spwddir,'output_maxent/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	write.csv(data.frame(species=sp,occur),paste(outdir,"occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
+	outdir = paste(wd,'output_maxent/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	write.csv(data.frame(species=species,occur),paste(outdir,"occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
 	write.csv(data.frame(species="bkgd",bkgd),paste(outdir,"bkgd.csv",sep=''),row.names=FALSE)### create bkgd.csv for maxent
 	###not user modified section
 	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
@@ -443,10 +463,10 @@ if (model.maxent) {
 	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')
 	tstr = paste(tstr,'askoverwrite=FALSE skipifexists=FALSE prefixes=TRUE verbose=FALSE ',sep='')
 	tstr = paste(tstr,'responsecurves=TRUE pictures=TRUE jackknife=TRUE writeclampgrid=TRUE ',sep='')
-	tstr = paste(tstr,'writemess=TRUE writebackgroundpredictions=TRUE writeplotdata=TRUE outputgrids=TRUE ',sep='')
+	tstr = paste(tstr,'writemess=TRUE writebackgroundpredictions=TRUE writeplotdata=FALSE outputgrids=TRUE ',sep='')
 	tstr = paste(tstr,'plots=TRUE appendtoresultsfile=FALSE threads=1 adjustsampleradius=0 ',sep='')
 	tstr = paste(tstr,'logfile=maxent.log cache=FALSE allowpartialdata=FALSE outputfiletype="asc" ',sep='')
-	tstr = paste(tstr,'perspeciesresults=FALSE responsecurvesexponent=FALSE	 ',sep='')
+	tstr = paste(tstr,'perspeciesresults=FALSE responsecurvesexponent=FALSE	dontcache nocache ',sep='')
 	if (any(enviro.data.type!='continuous')){
 		catvals = which(enviro.data.type!='continuous')
 		for (ii in catvals) {
@@ -489,5 +509,3 @@ if (model.maxent) {
 	tstr = paste(tstr,'nodata=',nodata,' ',sep='')
 	system(tstr)	
 }
-
-} # end for species

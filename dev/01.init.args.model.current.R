@@ -1,25 +1,37 @@
 #initial arguments used to define the inputs, models, outputs, etc
 
-datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
-wd = "/home/jc140298/bccvl/" #define the working directory
-#species <- c("ABT", "ANTADUS", "ANTFLAV")	#define the species of interest
-# get a list of species names from the data directory
-species =  list.files(datadir, full.names=FALSE)
-occur.data.name <- "occur.csv" #define the filename of the lon/lat of the observation records -- 2 column matrix of longitude and latitude
-bkgd.data.name <- "bkgd.csv" #define the filename of the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
+# read in the arguments listed at the command line
+args=(commandArgs(TRUE))  
+# check to see if arguments are passed
+if(length(args)==0){
+    print("No arguments supplied.")
+    # leave all args as default values
 
-enviro.data <- c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_05.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_06.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_12.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_15.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_16.asc",
-	"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_17.asc") #define the enviro data to use -- assumed location of data files in ascii grid format
-enviro.data.names <- c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
-	"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
-enviro.data.type <- c('continuous','continuous','continuous','continuous',
-	'continuous','continuous','continuous','continuous') #type in terms of continuous or categorical
+wd = "/home/jc140298/bccvl/ABT/" #define the working directory - where to put the outputs
+species = "ABT"	#define the species of interest
+occur.data = "/home/jc140298/bccvl/ABT/occur.csv" #define the lon/lat of the observation records -- 2 column matrix of longitude and latitude
+bkgd.data = "/home/jc140298/bccvl/ABT/bkgd.csv" #define the the lon/lat of the background / psuedo absence points to use -- 2 column matrix of longitude and latitude
+
+} else {
+	for(i in 1:length(args)) { 
+		eval(parse(text=args[[i]])) 
+	}
+	# expecting wd, species, occur.data, and bkgd.data
+}
+# EMG need to expand this to include all other args or come up with a way to parse this properly
+
+enviro.data = c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_05.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_06.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_12.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_15.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_16.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_17.asc") #define the enviro data to use -- assumed location of data files in ascii grid format
+enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
+"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
+enviro.data.type = c('continuous','continuous','continuous','continuous',
+'continuous','continuous','continuous','continuous') #type in terms of continuous or categorical
 
 ### define the models to be used
 model.bioclim = TRUE #boolean to run BIOCLIM algorithm -- all envirodata must be continuous
@@ -94,3 +106,7 @@ if (model.maxent) {
 	defaultprevalence=0.5
 	nodata=-9999
 }
+
+# save workspace to set arguments used by 01.model.current.R
+save.image(paste(wd, "/01.init.args.model.current.", species, ".RData", sep=""))
+save.image(paste(wd, "/01.init.args.model.current.", species, ".Rascii", sep=""), ascii=TRUE) # for Daniel
