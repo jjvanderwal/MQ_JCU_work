@@ -1,17 +1,42 @@
 #initial arguments used to define the inputs, models, outputs, etc
 
-datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
-wd <- "/home/jc140298/bccvl/" #define the working directory
-#species <- c("ABT")	#define the species of interest
-# get a list of species names from the data directory
-species =  list.files(datadir, full.names=FALSE)
+# read in the arguments listed at the command line
+args=(commandArgs(TRUE))  
+# check to see if arguments are passed
+if(length(args)==0){
+    print("No arguments supplied.")
+    # leave all args as default values
 
-enviro.data.dir <- "/home/jc165798/working/BCCVL/envirodata"	#define the enviro data directory to use
-enviro.data.names <- c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
-	"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
+wd = "/home/jc140298/bccvl/" #define the working directory
+species = "ABT"	#define the species of interest
+es.name = "climate_1990"
+enviro.data = c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_05.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_06.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_12.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_15.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_16.asc",
+"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_17.asc") #define the enviro data to use -- assumed location of data files in ascii grid format
+enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
+"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
+enviro.data.type = c('continuous','continuous','continuous','continuous',
+'continuous','continuous','continuous','continuous') #type in terms of continuous or categorical
 	# EMG should we restrict these to be the same as model creation?
 	# - if additional layers, all but DOMAIN will handle it (unless we can drop them explicitly)
 	# - if missing layers, BIOCLIM, DOMAIN, MAHAL, and BRT will produce Errors
+} else {
+	for(i in 1:length(args)) { 
+		eval(parse(text=args[[i]])) 
+	}
+	# expecting wd, species, es
+	es.name = basename(es)
+	enviro.data = list.files(es, full.names=TRUE)
+	enviro.data.names = basename(enviro.data)
+	
+}
+# EMG need to expand this to include all other args or come up with a way to parse this properly
+
 
 ### define the models to be used for projection
 project.bioclim = TRUE #boolean to project BIOCLIM algorithm 
@@ -48,3 +73,7 @@ if (project.maxent) {
 ### define the extent to be used for projection
 opt.ext=NULL
 #An extent object to limit the prediction to a sub-region of 'x'. Or an object that can be coerced to an Extent object by extent; such as a Raster* or Spatial* object 
+
+# save workspace to set arguments used by 02.model.project.R
+save.image(paste(wd, "/02.init.args.model.project.", species, ".", es.name, ".RData", sep=""))
+save.image(paste(wd, "/02.init.args.model.project.", species, ".", es.name, ".Rascii", sep=""), ascii=TRUE) # for Daniel
