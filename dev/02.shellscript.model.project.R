@@ -6,7 +6,7 @@ species = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all 
 # get a list of climate scenarios directories, each directory should have env files related to a climate scenario
 scenarios = list.files("/home/jc165798/working/BCCVL/envirodata/", full.names=TRUE)
 
-for (sp in species[8]) { # cycle through each of the species
+for (sp in species) { # cycle through each of the species
 
 	# set the species specific working directory argument //should already be created
 	wd.arg = paste("/home/jc140298/bccvl/", sp, "/", sep="")

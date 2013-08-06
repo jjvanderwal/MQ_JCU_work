@@ -122,7 +122,7 @@ if (project.geodist) {
 	}
 }
 
-if (project.circles) {
+if (project.convHull) {
 	convHull.obj = getModelObject("convHull") # get the model object
 	if (!is.null(convHull.obj)) {
 		convHull.proj = predict(convHull.obj, climate.scenario, ext=opt.ext) # predict for given climate scenario
