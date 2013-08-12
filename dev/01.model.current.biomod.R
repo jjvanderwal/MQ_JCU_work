@@ -14,7 +14,7 @@ if(length(args)==0){
 }
 
 # load arguments file
-load(paste(wd, "01.init.args.model.current.biomod", species, ".RData", sep=""))
+load(paste(wd, "01.init.args.model.current.biomod.", species, ".RData", sep=""))
 
 ###check if libraries are installed, install if necessary and then load them
 necessary=c("dismo","SDMTools","gbm","gstat","deldir", "biomod2") #list the libraries needed
@@ -517,9 +517,10 @@ if (model.maxent) {
 # 3. Compute the model
 # NOTE: Model evaluation is included as part of model creation
 
-#BIOMOD_FormatingData(resp.var, expl.var, resp.xy = NULL, resp.name = NULL, eval.resp.var = NULL, 
+# BIOMOD_FormatingData(resp.var, expl.var, resp.xy = NULL, resp.name = NULL, eval.resp.var = NULL, 
 #	eval.expl.var = NULL, eval.resp.xy = NULL, PA.nb.rep = 0, PA.nb.absences = 1000, PA.strategy = 'random',
 #	PA.dist.min = 0, PA.dist.max = NULL, PA.sre.quant = 0.025, PA.table = NULL, na.rm = TRUE)
+#
 # resp.var a vector, SpatialPointsDataFrame (or SpatialPoints if you work with ‘only presences’ data) containing species data (a single species) in binary format (ones for presences, zeros for true absences and NA for indeterminated ) that will be used to build the species distribution models.
 # expl.var a matrix, data.frame, SpatialPointsDataFrame or RasterStack containing your explanatory variables that will be used to build your models.
 # resp.xy optional 2 columns matrix containing the X and Y coordinates of resp.var (only consider if resp.var is a vector) that will be used to build your models.
@@ -546,10 +547,11 @@ formatBiomodData = function() {
 }
 
 	
-#BIOMOD_Modeling(data, models = c('GLM','GBM','GAM','CTA','ANN','SRE','FDA','MARS','RF','MAXENT'), models.options = NULL, 
+# BIOMOD_Modeling(data, models = c('GLM','GBM','GAM','CTA','ANN','SRE','FDA','MARS','RF','MAXENT'), models.options = NULL, 
 #	NbRunEval=1, DataSplit=100, Yweights=NULL, Prevalence=NULL, VarImport=0, models.eval.meth = c('KAPPA','TSS','ROC'), 
 #	SaveObj = TRUE, rescal.all.models = TRUE, do.full.models = TRUE, modeling.id = as.character(format(Sys.time(), '%s')),
 #	...)
+#
 # data	BIOMOD.formated.data object returned by BIOMOD_FormatingData
 # models vector of models names choosen among 'GLM', 'GBM', 'GAM', 'CTA', 'ANN', 'SRE', 'FDA', 'MARS', 'RF' and 'MAXENT'
 # models.options BIOMOD.models.options object returned by BIOMOD_ModelingOptions
@@ -597,12 +599,15 @@ if (model.glm) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(GLM = glm.myBiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('GLM'),	models.options = myBiomodOptions,
+	myBiomodModelOut.glm <- BIOMOD_Modeling(data = myBiomodData, models = c('GLM'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	# model output saved as part of BIOMOD_Modeling() # EMG not sure how to retrieve
+	if (!is.null(myBiomodModelOut.glm)) {		
+			save(myBiomodModelOut.glm, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 	
 ###############
@@ -633,12 +638,14 @@ if (model.gam) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(GAM = gam.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('GAM'),	models.options = myBiomodOptions,
+	myBiomodModelOut.gam <- BIOMOD_Modeling(data = myBiomodData, models = c('GAM'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.gam)) {		
+			save(myBiomodModelOut.gam, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 	
 ###############
@@ -681,12 +688,14 @@ if (model.gbm) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(GBM = gbm.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('GBM'),	models.options = myBiomodOptions,
+	myBiomodModelOut.gbm <- BIOMOD_Modeling(data = myBiomodData, models = c('GBM'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.gbm)) {		
+			save(myBiomodModelOut.gbm, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -720,12 +729,14 @@ if (model.cta) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(CTA = cta.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('CTA'),	models.options = myBiomodOptions,
+	myBiomodModelOut.cta <- BIOMOD_Modeling(data = myBiomodData, models = c('CTA'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.cta)) {		
+			save(myBiomodModelOut.cta, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -745,12 +756,14 @@ if (model.ann) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(ANN = ann.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('ANN'),	models.options = myBiomodOptions,
+	myBiomodModelOut.ann <- BIOMOD_Modeling(data = myBiomodData, models = c('ANN'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.ann)) {		
+			save(myBiomodModelOut.ann, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -768,12 +781,14 @@ if (model.sre) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(SRE = sre.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('SRE'),	models.options = myBiomodOptions,
+	myBiomodModelOut.sre <- BIOMOD_Modeling(data = myBiomodData, models = c('SRE'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.sre)) {		
+			save(myBiomodModelOut.sre, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -793,12 +808,14 @@ if (model.fda) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(FDA = fda.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('FDA'),	models.options = myBiomodOptions,
+	myBiomodModelOut.fda <- BIOMOD_Modeling(data = myBiomodData, models = c('FDA'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.fda)) {		
+			save(myBiomodModelOut.fda, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -819,12 +836,14 @@ if (model.mars) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(MARS = mars.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('MARS'),	models.options = myBiomodOptions,
+	myBiomodModelOut.mars <- BIOMOD_Modeling(data = myBiomodData, models = c('MARS'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.mars)) {		
+			save(myBiomodModelOut.mars, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -846,12 +865,14 @@ if (model.rf) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(RF = rf.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('RF'),	models.options = myBiomodOptions,
+	myBiomodModelOut.rf <- BIOMOD_Modeling(data = myBiomodData, models = c('RF'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.rf)) {		
+			save(myBiomodModelOut.rf, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }
 
 ###############
@@ -887,10 +908,12 @@ if (model.biomod.maxent) {
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(MAXENT = biomod.maxent.BiomodOptions) # 2. Define the model options
 	# 3. Compute the model
-	myBiomodModelOut <- BIOMOD_Modeling(data = myBiomodData, models = c('MAXENT'),	models.options = myBiomodOptions,
+	myBiomodModelOut.biomod.maxent <- BIOMOD_Modeling(data = myBiomodData, models = c('MAXENT'),	models.options = myBiomodOptions,
 		NbRunEval=biomod.NbRunEval,	DataSplit=biomod.DataSplit,	Yweights=biomod.Yweights, Prevalence=biomod.Prevalence,
 		VarImport=biomod.VarImport,	models.eval.meth = biomod.models.eval.meth, SaveObj = TRUE,
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
-	# model output saved as part of BIOMOD_Modeling()
+	if (!is.null(myBiomodModelOut.biomod.maxent)) {		
+			save(myBiomodModelOut.biomod.maxent, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+	}
 }

@@ -119,7 +119,7 @@ biomod.VarImport=0 #number of resampling of each explanatory variable to measure
 biomod.models.eval.meth = c('KAPPA','TSS','ROC') #vector of evaluation metrics among 'KAPPA', 'TSS', 'ROC', 'FAR', 'SR', 'ACCURACY', 'BIAS', 'POD', 'CSI' and 'ETS'
 biomod.rescal.all.models = TRUE #if true, all model prediction will be scaled with a binomial GLM
 biomod.do.full.models = TRUE #if true, models calibrated and evaluated with the whole dataset are done; ignored if DataSplitTable is filled
-biomod.modeling.id = as.character(format(Sys.time(), '%s')) #character, the ID (=name) of modeling procedure. A random number by default
+biomod.modeling.id = species #character, the ID (=name) of modeling procedure. A random number by default
 # biomod.DataSplitTable = NULL #a matrix, data.frame or a 3D array filled with TRUE/FALSE to specify which part of data must be used for models calibration (TRUE) and for models validation (FALSE). Each column correspund to a 'RUN'. If filled, args NbRunEval, DataSplit and do.full.models will be ignored
 # EMG Need to test whether a NULL values counts as an argument
 
@@ -268,7 +268,7 @@ model.rf = TRUE #boolean to run random forest algorithm
 	)
 }
 
-model.biomod.maxent = FALSE #boolean to run {biomod} maxent algorithm
+model.biomod.maxent = TRUE #boolean to run {biomod} maxent algorithm
 if (model.biomod.maxent) {
 	biomod.maxent.BiomodOptions <- list(
 		path_to_maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar", #character, the link to maxent.jar file (the working directory by default)

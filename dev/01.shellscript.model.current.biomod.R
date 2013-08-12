@@ -3,7 +3,7 @@
 # get a list of species directories
 species = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all the species
 
-for (sp in species[1]) { #cycle through each of the species
+for (sp in species) { #cycle through each of the species
 
 	# set the species specific working directory argument and create it
 	wd.arg = paste("/home/jc140298/bccvl/", sp, "/", sep=""); dir.create(wd.arg) 
@@ -26,7 +26,7 @@ for (sp in species[1]) { #cycle through each of the species
 		# this job calls the 01.init.args.model.current.R file using arguments defined above to set the parameters for the models
 		cat("R CMD BATCH --no-save --no-restore '--args wd=\"", wd.arg, "\" species=\"", species.arg, "\" occur.data=\"", occur.data.arg, "\" bkgd.data=\"", bkgd.data.arg, "\"' /home/jc140298/bccvl/01.init.args.model.current.biomod.R 01.init.args.model.current.biomod.", sp, ".Rout \n", sep="", file=shell.file)
 		# this job calls the 01.model.current.R file to run the models
-		cat("R CMD BATCH --no-save --no-restore '--args wd=\"", wd.arg, "\" species=\"", species.arg, "\"' /home/jc140298/bccvl/01.model.current.R 01.model.current.biomod.", sp, ".Rout \n", sep="", file=shell.file)
+		cat("R CMD BATCH --no-save --no-restore '--args wd=\"", wd.arg, "\" species=\"", species.arg, "\"' /home/jc140298/bccvl/01.model.current.biomod.R 01.model.current.biomod.", sp, ".Rout \n", sep="", file=shell.file)
 	close(shell.file)
 
 	shell.file.name = paste("/home/jc140298/bccvl/", sp, "/01.model.current.biomod.", sp, ".sh", sep="")
