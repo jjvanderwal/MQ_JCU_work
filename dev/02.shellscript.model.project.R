@@ -1,12 +1,12 @@
 # create the shell script to set the arguments and project the models for each species and climate scenario
 
 # get a list of species directories
-species = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all the species
+species.names = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all the species
 
 # get a list of climate scenarios directories, each directory should have env files related to a climate scenario
 scenarios = list.files("/home/jc165798/working/BCCVL/envirodata/", full.names=TRUE)
 
-for (sp in species) { # cycle through each of the species
+for (sp in species.names) { # cycle through each of the species
 
 	# set the species specific working directory argument //should already be created
 	wd.arg = paste("/home/jc140298/bccvl/", sp, "/", sep="")

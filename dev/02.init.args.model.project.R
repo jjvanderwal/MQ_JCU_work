@@ -22,9 +22,7 @@ enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
 "bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
 enviro.data.type = c('continuous','continuous','continuous','continuous',
 'continuous','continuous','continuous','continuous') #type in terms of continuous or categorical
-	# EMG should we restrict these to be the same as model creation?
-	# - if additional layers, all but DOMAIN will handle it (unless we can drop them explicitly)
-	# - if missing layers, BIOCLIM, DOMAIN, MAHAL, and BRT will produce Errors
+
 } else {
 	for(i in 1:length(args)) { 
 		eval(parse(text=args[[i]])) 
@@ -64,7 +62,7 @@ if (project.geodist) {
 project.voronoiHull = TRUE #boolean to project Voronoi Hulls algorithm
 project.brt = TRUE #boolean to project Boosted regression tree algorithm
 
-project.maxent = TRUE #boolean to project maxent algorithm
+project.maxent = FALSE #boolean to project maxent algorithm
 if (project.maxent) {
 	maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar" #define location of maxent.jar file
 	# there is also an additional argument 'args' used to pass arguments (options) to the maxent software.
@@ -73,6 +71,36 @@ if (project.maxent) {
 ### define the extent to be used for projection
 opt.ext=NULL
 #An extent object to limit the prediction to a sub-region of 'x'. Or an object that can be coerced to an Extent object by extent; such as a Raster* or Spatial* object 
+
+############### BIOMOD2 Models ###############
+#
+# general arguments to project any biomod modelling
+#
+#modeling.output #"BIOMOD.models.out" object produced by a BIOMOD_Modeling run
+#new.env #a set of explanatory variables onto which models will be projected; must match variable names used to build the models
+#proj.name #a character defining the projection name (a new folder will be created with this name)
+biomod.xy.new.env = NULL #optional coordinates of new.env data. Ignored if new.env is a rasterStack
+biomod.selected.models = 'all' #'all' when all models have to be used to render projections or a subset vector of modeling.output models computed (eg, = grep(’_RF’, getModelsBuiltModels(myBiomodModelOut)))
+biomod.binary.meth = NULL #a vector of a subset of models evaluation method computed in model creation 
+biomod.filtered.meth = NULL #a vector of a subset of models evaluation method computed in model creation
+biomod.compress = 'gzip' #compression format of objects stored on your hard drive. May be one of ‘xz’, ‘gzip’ or NULL
+biomod.build.clamping.mask = TRUE #if TRUE, a clamping mask will be saved on hard drive
+opt.biomod.silent = FALSE #logical, if TRUE, console outputs are turned off
+opt.biomod.do.stack = TRUE #logical, if TRUE, attempt to save all projections in a unique object i.e RasterStack
+opt.biomod.keep.in.memory = TRUE #logical, if FALSE only the link pointing to a hard drive copy of projections are stored in output object
+opt.biomod.output.format = NULL #'.Rdata', '.grd' or '.img'; if NULL, and new.env is not a Raster class, output is .RData defining projections saving format (on hard drive)
+
+### define the biomod2 models to be used for projection
+project.glm = TRUE #boolean to project generalized linear model algorithm
+project.gam = TRUE #boolean to project generalized boosting model algorithm
+project.gbm = TRUE #boolean to project generalized additive model algorithm
+project.cta = TRUE #boolean to project classification tree analysis algorithm
+project.ann = TRUE #boolean to project artificial neural network algorithm
+project.sre = TRUE #boolean to project surface range envelop algorithm
+project.fda = TRUE #boolean to project flexible discriminant analysis algorithm
+project.mars = TRUE #boolean to project multiple adaptive regression splines algorithm
+project.rf = TRUE #boolean to project random forest algorithm
+project.biomod.maxent = FALSE #boolean to project {biomod} maxent algorithm
 
 # save workspace to set arguments used by 02.model.project.R
 save.image(paste(wd, "/02.init.args.model.project.", species, ".", es.name, ".RData", sep=""))

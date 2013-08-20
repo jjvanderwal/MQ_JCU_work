@@ -1,9 +1,9 @@
 # create the shell script to set the arguments and run the models for each species
 
 # get a list of species directories
-species = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all the species
+species.names = list.files("/home/jc165798/working/BCCVL/models/") #get a list of all the species
 
-for (sp in species) { #cycle through each of the species
+for (sp in species.names) { #cycle through each of the species
 
 	# set the species specific working directory argument and create it
 	wd.arg = paste("/home/jc140298/bccvl/", sp, "/", sep=""); dir.create(wd.arg) 
