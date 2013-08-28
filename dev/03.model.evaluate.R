@@ -1,13 +1,33 @@
 #script to evaluate distribution models
 
-#source("/home/jc165798/SCRIPTS/git_code/MQ_JCU_work/dev/03.init.args.model.evaluate.R") #read in the initial arguments
-source("/home/jc140298/bccvl/03.init.args.model.evaluate.R")
+# read in the arguments listed at the command line in shell script
+args=(commandArgs(TRUE))  
+# check to see if arguments are passed
+if(length(args)==0){
+    print("No arguments supplied.")
+    # leave all args as default values
+} else {
+	for(i in 1:length(args)) { 
+		eval(parse(text=args[[i]])) 
+	}
+	# expecting wd and species to be able to locate arguments file
+}
+
+# load arguments file
+load(paste(wd, "03.init.args.model.evaluate.", species, ".RData", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
-necessary=c("dismo","SDMTools","gbm","gstat","deldir") #list the libraries needed
+necessary=c("dismo","SDMTools","gbm","gstat","deldir", "biomod2") #list the libraries needed
 installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
+
+# load in the data
+if (file.exists(paste(wd, "occur.RData", sep="")) && file.exists(paste(wd, "bkgd.RData", sep=""))) {
+	load(paste(wd, "occur.RData", sep="")); load(paste(wd, "bkgd.RData", sep=""));
+} else {
+	warning("No occurrence or background data available for model evaulation!")
+}
 
 ###############
 #
@@ -51,26 +71,19 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 #
 ###############
 
+## Needed for tryCatch'ing:
+err.null <- function (e) return(NULL)
+
 # function to get model object
 getModelObject = function(model.name) {
-
-	model.dir = paste(spwddir, "output_", model.name, "/", sep="")
-	model.obj = NULL
-	tryCatch({
-		model.obj = get(load(file=paste(model.dir, "model.object.RData", sep="")))
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "Cannot load model.obj from", model.dir, sep=": "))
-	}, finally = {
-		return(model.obj)
-	})
-	# EMG This is ugly, try to make it pretty
+	model.dir = paste(wd, "output_", model.name, "/", sep=""); setwd(model.dir);
+	model.obj = tryCatch(get(load(file=paste(model.dir, "model.object.RData", sep=""))), error = err.null)
 }
 
 # function to save evaluate output
-saveModelEvaluation = function(out.model, model.name) {
-	
-	model.dir = paste(spwddir, "/output_", model.name, "/", sep="")	# set the output directory for eval object
-	save(out.model, file=paste(model.dir, "eval.object.RData", sep=''))	# save the 'ModelEvalution' object
+saveModelEvaluation = function(out.model) {
+	model.dir = paste(getwd(), "/", sep="")
+	save(out.model, file=paste(getwd(), "/eval.object.RData", sep=''))	# save the 'ModelEvalution' object
 	
 	# true skill statistic (TSS)
 	#tss = sensitivity + specificity - 1 == TPR + TNR - 1
@@ -98,160 +111,121 @@ saveModelEvaluation = function(out.model, model.name) {
 	minROCdistance = out.model@t[which.min(sqrt((1-out.model@TPR)^2 + (1-out.model@TNR)^2))]
 	write("kappa,spec_sens,no_omission,minROCdistance", file=paste(model.dir, "thresholds.txt", sep=""))
 	write(c(as.numeric(dismo.thresh),minROCdistance), file=paste(model.dir, "thresholds.txt", sep=""), sep=",", append=TRUE)
-
 }
 
-# for each species
-for (sp in species) {
-
-# try to load in the data
-spwddir = paste(wd, sp, "/", sep="")
-tryCatch({
-	load(paste(spwddir, "occur.RData", sep="")) 
-	load(paste(spwddir, "bkgd.RData", sep=""))
-}, error = function(e) {
-	print(paste("FAIL!", sp, "missing data needed to evaluate models", sep=": "))
-}) # end tryCatch	
-
+###evaluate the models and save the outputs
 if (evaluate.bioclim) {
-
 	bioclim.obj = getModelObject("bioclim")	# get the model object
-	tryCatch ({
+	if (!is.null(bioclim.obj)) {
 		bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model
-		saveModelEvaluation(bioclim.eval, "bioclim")	# save output
-		rm("bioclim.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.bioclim", sep=": "))
-	}, finally = {
-		rm("bioclim.obj") #clean up the memory
-	}) # end tryCatch
-}
+		saveModelEvaluation(bioclim.eval)	# save output
+		rm(list=c("bioclim.obj", "bioclim.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load bioclim.obj from", wd, "output_bioclim", sep=": "), stdout())
+	}
+} # end if bioclim
 	
 if (evaluate.domain) {
-
 	domain.obj = getModelObject("domain") # get the model object
-	tryCatch ({
+	if (!is.null(domain.obj)) {
 		domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model
-		saveModelEvaluation(domain.eval, "domain") 	# save output
-		rm("domain.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.domain", sep=": "))
-	}, finally = {
-		rm("domain.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(domain.eval) 	# save output
+		rm(list=c("domain.obj", "domain.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load domain.obj from", wd, "output_domain", sep=": "), stdout())
+	}
 }
 
 if (evaluate.mahal) {
-	
 	mahal.obj = getModelObject("mahal") # get the model object
-	tryCatch ({
+	if (!is.null(mahal.obj)) {
 		mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model
-		saveModelEvaluation(mahal.eval, "mahal") 	# save output
-		rm("mahal.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.mahal", sep=": "))
-	}, finally = {
-		rm("mahal.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(mahal.eval) 	# save output
+		rm(list=c("mahal.obj", "mahal.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load mahal.obj from", wd, "output_mahal", sep=": "), stdout())
+	}
 }
 
 if (evaluate.geodist) {
-	
 	geodist.obj = getModelObject("geodist") # get the model object
-	tryCatch ({
+	if (!is.null(geodist.obj)) {
 		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model
 		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
-		saveModelEvaluation(geodist.eval, "geodist") 	# save output
-		rm("geodist.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.geodist", sep=": "))
-	}, finally = {
-		rm("geodist.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(geodist.eval) 	# save output
+		rm(list=c("geodist.obj", "geodist.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load geodist.obj from", wd, "output_geodist", sep=": "), stdout())
+	}
 }
 
 if (evaluate.convHull) {
-	
 	convHull.obj = getModelObject("convHull") # get the model object
-	tryCatch ({
+	if (!is.null(convHull.obj)) {
 		convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(convHull.eval, "convHull") 	# save output
-		rm("convHull.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.convHull", sep=": "))
-	}, finally = {
-		rm("convHull.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(convHull.eval) 	# save output
+		rm(list=c("convHull.obj", "convHull.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load convHull.obj from", wd, "output_convHull", sep=": "), stdout())
+	}
 }
 
-if (evaluate.convHull) {
-	
+if (evaluate.circles) {
 	circles.obj = getModelObject("circles") # get the model object
-	tryCatch ({
+	if (!is.null(circles.obj)) {
 		circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(circles.eval, "circles") 	# save output
-		rm("circles.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.convHull", sep=": "))
-	}, finally = {
-		rm("convHull.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(circles.eval) 	# save output
+		rm(list=c("circles.obj", "circles.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load circles.obj from", wd, "output_circles", sep=": "), stdout())
+	}
 }
 
 if (evaluate.geoIDW) {
-	
 	geoIDW.obj = getModelObject("geoIDW") # get the model object
-	tryCatch ({
+	if (!is.null(geoIDW.obj)) {
 		geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(geoIDW.eval, "geoIDW") 	# save output
-		rm("geoIDW.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.geoIDW", sep=": "))
-	}, finally = {
-		rm("geoIDW.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(geoIDW.eval) 	# save output
+		rm(list=c("geoIDW.obj", "geoIDW.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load geoIDW.obj from", wd, "output_geoIDW", sep=": "), stdout())
+	}
 }
 
 if (evaluate.voronoiHull) {
-	
 	voronoiHull.obj = getModelObject("voronoiHull") # get the model object
-	tryCatch ({
+	if (!is.null(voronoiHull.obj)) {
 		voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(voronoiHull.eval, "voronoiHull") 	# save output
-		rm("voronoiHull.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.voronoiHull", sep=": "))
-	}, finally = {
-		rm("voronoiHull.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(voronoiHull.eval) 	# save output
+		rm(list=c("voronoiHull.obj", "voronoiHull.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load voronoiHull.obj from", wd, "output_voronoiHull", sep=": "), stdout())
+	}
 }
 
 if (evaluate.brt) {
-	
 	brt.obj = getModelObject("brt") # get the model object
-	tryCatch ({
+	if (!is.null(brt.obj)) {
 		# NOTE the order of arguments in the  predict function for brt; this is because
 		#	the function is defined outside of the dismo package
 		brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model
-		saveModelEvaluation(brt.eval, "brt") 	# save output
-		rm(	"brt.eval"); #clean up the memory
-	}, error = function(e) {
-		print(paste("FAIL!", sp, "evaluate.brt", sep=": "))
-	}, finally = {
-		rm("brt.obj") #clean up the memory
-	}) # end tryCatch
+		saveModelEvaluation(brt.eval) 	# save output
+		rm(list=c("brt.obj", "brt.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load brt.obj from", wd, "output_brt", sep=": "), stdout())
+	}
 }
 
 if (evaluate.maxent) {
 	# read in the Maxent predictions at the presence and background points, and 
 	#	extract the columns we need
-	model.dir <- paste(spwddir, "/output_maxent", sep="")
+	model.dir <- paste(wd, "/output_maxent", sep="")
 	presence <- read.csv(paste(model.dir, "/", sp, "_samplePredictions.csv", sep=""))
 	background <- read.csv(paste(model.dir, "/", sp, "_backgroundPredictions.csv", sep=""))
 	p <- presence$Logistic.prediction
 	a <- background$logistic
 	
-	# use predictions to generate ModelEvaluation() per dismo package (copy code from evaluate.R)
+	# use predictions to generate ModelEvaluation() per dismo package (copy code from dismo::evaluate.R)
 	# evaluate() default thresholds are one per prediction, unless > 1000
 	
 	np <- length(p)
@@ -320,8 +294,184 @@ if (evaluate.maxent) {
 	prE = prY + prN
 	xc@kappa = (prA - prE) / (1-prE)
 	
-	saveModelEvaluation(xc, "maxent")	# save output
+	saveModelEvaluation(xc)	# save output
 	rm(xc); #clean up the memory
 }
 
-} # end for species
+############### BIOMOD2 Models ###############
+###############
+#
+# getModelsEvaluations(obj) #evaluations of each model computed according to selected evaluation methods
+# 	obj	"BIOMOD.models.out" object
+#		best.iter: the best score obtained for chosen statistic
+#		cutoff: the associated cut-off used for transform fitted vector into binary
+#		sensibility: the sensibility with this threshold
+#		specificity: the specificity with this threshold
+#
+# getModelsVarImport(obj) #models variable importances
+#	obj	"BIOMOD.models.out" object
+#
+# getModelsPrediction(obj, ...) #predictions of each models on their own calibration + validation dataset
+# getModelsPredictionEval(obj, ...) #predictions of each models on evaluation dataset (if defined)
+# 	obj	"BIOMOD.models.out" object
+#	as.data.frame: logical If TRUE, models predictions will be returned as data.frame rather than array
+# 
+# response.plot2() # plot of predicted responses in 2 or 3 dimensions (Elith et al 2005)
+#
+###############
+
+saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
+	# get and save the model evaluation statistics
+	# EMG these must specified during model creation with the arg "models.eval.meth"
+	evaluation = getModelsEvaluations(biomod.model)
+	write.csv(evaluation, file=paste(getwd(), "/modelEvaluation.txt", sep=""))
+
+	# save AUC curve
+	# need predictions at the presence and background points and observed values
+	predictions = getModelsPrediction(biomod.model); obs = attributes(getModelsInputData(biomod.model))[[3]];
+	require(pROC, quietly=T)
+    roc1 <- roc(as.numeric(obs), as.numeric(predictions), percent=T)
+	png(file=paste(getwd(), "/roc.png", sep=''))
+	plot(roc1, main=paste("AUC=",round(auc(roc1)/100,3),sep=""), legacy.axes=TRUE)
+	dev.off()
+
+	# COR not one of the methods provided automatically
+	# COR <- try( cor.test(c(p,a), c(rep(1, length(p)), rep(0, length(a))) ), silent=TRUE )
+	p = predictions[1:nrow(occur)]; a = predictions[nrow(occur)+1:nrow(predictions)]
+	COR <- try( cor.test(c(p,a), c(rep(1, length(p)), rep(0, length(a))) ), silent=TRUE )
+
+	elith = c(auc(roc1)/100, as.numeric(COR$estimate), evaluation[[1]], evaluation[[4]])
+	write("AUC,COR,maxKAPPA,threshold@MaxKAPPA", file=paste(getwd(), "/elith.txt", sep=""))
+	write(elith, file=paste(getwd(), "/elith.txt", sep=""), sep=",", append=TRUE)
+	
+	# get and save the variable importance estimates
+	variableImpt = getModelsVarImport(biomod.model)
+	if (!is.na(variableImpt)) {
+		write.csv(variableImpt, file=paste(getwd(), "/variableImportance.txt", sep=""))
+	} else {
+		message("VarImport argument not specified during model creation!")
+		#EMG must create the model with the arg "VarImport" != 0
+	}
+
+	# save response curves (Elith et al 2005)
+	png(file=paste(getwd(), "/response_curves.png", sep=''))
+		response.plot2(models = loaded.name, Data = getModelsInputData(biomod.model,"expl.var"),
+			show.variables = getModelsInputData(biomod.model,"expl.var.names"),
+			do.bivariate = FALSE, fixed.var.metric = "median", col = c("blue", "red"),
+			legend = TRUE, data_species = getModelsInputData(biomod.model,"resp.var"))
+	dev.off()
+}
+
+if (evaluate.glm) {
+	glm.obj = getModelObject("glm") # get the model object
+	if (!is.null(glm.obj)) {
+		glm.loaded.model = BIOMOD_LoadModels(glm.obj, models="GLM")
+		saveBIOMODModelEvaluation(glm.loaded.model, glm.obj) 	# save output
+		rm("glm.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load glm.obj from", getwd(), sep=": "), stdout())
+	}
+}
+		
+if (evaluate.gam) {
+	gam.obj = getModelObject("gam") # get the model object
+	if (!is.null(gam.obj)) {
+		gam.loaded.model = BIOMOD_LoadModels(gam.obj, models="GAM") # load model
+		saveBIOMODModelEvaluation(gam.loaded.model, gam.obj) 	# save output
+		rm("gam.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load gam.obj from", getwd(), sep=": "), stdout())
+	}
+}
+	
+if (evaluate.gbm) {
+	gbm.obj = getModelObject("gbm") # get the model object
+	if (!is.null(gbm.obj)) {
+		gbm.loaded.model = BIOMOD_LoadModels(gbm.obj, models="GBM") # load model
+		saveBIOMODModelEvaluation(gbm.loaded.model, gbm.obj) 	# save output
+		rm("gbm.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load gbm.obj from", getwd(), sep=": "), stdout())
+	}
+}
+	
+if (evaluate.cta) {
+	cta.obj = getModelObject("cta") # get the model object
+	if (!is.null(cta.obj)) {
+		cta.loaded.model = BIOMOD_LoadModels(cta.obj, models="CTA") # load model
+		saveBIOMODModelEvaluation(cta.loaded.model, cta.obj) 	# save output
+		rm("cta.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load cta.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.ann) {	
+	ann.obj = getModelObject("ann") # get the model object
+	if (!is.null(ann.obj)) {
+		ann.loaded.model = BIOMOD_LoadModels(ann.obj, models="ANN") # load model
+		saveBIOMODModelEvaluation(ann.loaded.model, ann.obj) 	# save output
+		rm("ann.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load ann.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.sre) {	
+	sre.obj = getModelObject("sre") # get the model object
+	if (!is.null(sre.obj)) {
+		sre.loaded.model = BIOMOD_LoadModels(sre.obj, models="SRE") # load model
+		saveBIOMODModelEvaluation(sre.loaded.model, sre.obj) 	# save output
+		rm("sre.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load sre.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.fda) {	
+	fda.obj = getModelObject("fda") # get the model object
+	if (!is.null(fda.obj)) {
+		fda.loaded.model = BIOMOD_LoadModels(fda.obj, models="FDA") # load model
+		saveBIOMODModelEvaluation(fda.loaded.model, fda.obj) 	# save output
+		rm("fda.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load fda.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.mars) {	
+	mars.obj = getModelObject("mars") # get the model object
+	if (!is.null(mars.obj)) {
+		mars.loaded.model = BIOMOD_LoadModels(mars.obj, models="MARS") # load model
+		saveBIOMODModelEvaluation(mars.loaded.model, mars.obj) 	# save output
+		rm("mars.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load mars.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.rf) {	
+	rf.obj = getModelObject("rf") # get the model object
+	if (!is.null(rf.obj)) {
+		rf.loaded.model = BIOMOD_LoadModels(rf.obj, models="RF") # load model
+		saveBIOMODModelEvaluation(rf.loaded.model, rf.obj) 	# save output
+		rm("rf.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load rf.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+if (evaluate.biomod.maxent) {	
+	biomod.maxent.obj = getModelObject("biomod.maxent") # get the model object
+	if (!is.null(biomod.maxent.obj)) {
+		biomod.maxent.loaded.model = BIOMOD_LoadModels(biomod.maxent.obj, models="MAXENT") # load model
+		saveBIOMODModelEvaluation(biomod.maxent.loaded.model, biomod.maxent.obj) 	# save output
+		rm("biomod.maxent.obj") #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load biomod.maxent.obj from", getwd(), sep=": "), stdout())
+	}
+}
+
+
+
+

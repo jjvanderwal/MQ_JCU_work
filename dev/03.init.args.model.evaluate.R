@@ -1,22 +1,46 @@
 #initial arguments used to evaluate models
 
-datadir <- "/home/jc165798/working/BCCVL/models/" #define the data directory
+# read in the arguments listed at the command line
+args=(commandArgs(TRUE))  
+# check to see if arguments are passed
+if(length(args)==0){
+    print("No arguments supplied.")
+    # leave all args as default values
+	
 wd = "/home/jc140298/bccvl/" #define the working directory
-#species <- c("ABT")	#define the species of interest
-species =  list.files(datadir, full.names=FALSE) # get a list of species names from the data directory
+species <- c("ABT")	#define the species of interest
+
+} else {
+	for(i in 1:length(args)) { 
+		eval(parse(text=args[[i]])) 
+	}
+	# expecting wd, species	
+}
+# EMG need to expand this to include all other args or come up with a way to parse this properly
 
 ### define the models to be used for evaluation
-evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 
-evaluate.domain = TRUE #boolean to evaluate DOMAIN algorithm -- envirodata should have same number of data layers as model creation
-evaluate.mahal = TRUE #boolean to evaluate MAHALANOBIS algorithm
-evaluate.geodist = TRUE #boolean to evaluate geographic distances algorithm
-evaluate.convHull = TRUE #boolean to evaluate convex hulls algorithm 
-evaluate.circles = TRUE #boolean to evaluate circles algorithm 
-evaluate.geoIDW = TRUE #boolean to evaluate inverse distance weighted algorithm
-evaluate.voronoiHull = TRUE #boolean to evaluate Voronoi Hulls algorithm
-evaluate.brt = TRUE #boolean to evaluate Boosted regression tree algorithm
-evaluate.maxent = TRUE #boolean to evaluate maxent algorithm
+evaluate.bioclim = FALSE #boolean to evaluate BIOCLIM algorithm 
+evaluate.domain = FALSE #boolean to evaluate DOMAIN algorithm -- envirodata should have same number of data layers as model creation
+evaluate.mahal = FALSE #boolean to evaluate MAHALANOBIS algorithm
+evaluate.geodist = FALSE #boolean to evaluate geographic distances algorithm
+evaluate.convHull = FALSE #boolean to evaluate convex hulls algorithm 
+evaluate.circles = FALSE #boolean to evaluate circles algorithm 
+evaluate.geoIDW = FALSE #boolean to evaluate inverse distance weighted algorithm
+evaluate.voronoiHull = FALSE #boolean to evaluate Voronoi Hulls algorithm
+evaluate.brt = FALSE #boolean to evaluate Boosted regression tree algorithm
+evaluate.maxent = FALSE #boolean to evaluate maxent algorithm
 
+############### BIOMOD2 Models ###############
+evaluate.glm = TRUE #boolean to evaluate generalized linear model algorithm
+evaluate.gam = TRUE #boolean to evaluate generalized boosting model algorithm
+evaluate.gbm = TRUE #boolean to evaluate generalized additive model algorithm
+evaluate.cta = TRUE #boolean to evaluate classification tree analysis algorithm
+evaluate.ann = TRUE #boolean to evaluate artificial neural network algorithm
+evaluate.sre = TRUE #boolean to evaluate surface range envelop algorithm
+evaluate.fda = TRUE #boolean to evaluate flexible discriminant analysis algorithm
+evaluate.mars = TRUE #boolean to evaluate multiple adaptive regression splines algorithm
+evaluate.rf = TRUE #boolean to evaluate random forest algorithm
+evaluate.biomod.maxent = TRUE #boolean to evaluate {biomod} maxent algorithm
 
 #*************** UNDER CONSTRUCTION ***************
 
@@ -78,4 +102,6 @@ opt.threshold = c()
 #minROCdistance - the threshold which has the shortest distance ro the top-left corner (0,1) in ROC plot
 #maxSpec_Sens - the threshold at which the sum of the sensitivity (true positive rate) and specificity (true negative rate) is highest 
 
-
+# save workspace to set arguments used by 03.model.evaluate.R
+save.image(paste(wd, "/03.init.args.model.evaluate.", species, ".RData", sep=""))
+save.image(paste(wd, "/03.init.args.model.evaluate.", species, ".Rascii", sep=""), ascii=TRUE) # for Daniel
