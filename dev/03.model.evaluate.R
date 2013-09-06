@@ -29,6 +29,11 @@ if (file.exists(paste(wd, "occur.RData", sep="")) && file.exists(paste(wd, "bkgd
 	warning("No occurrence or background data available for model evaulation!")
 }
 
+# source my modified version of biomod2's Evaluate.models.R for consistent model accuracy statistics
+source("/home/jc140298/bccvl/my.Evaluate.models.R")
+# model accuracy statistics - combine stats from dismo and biomod2 for consistent output
+model.accuracy = c(dismo.eval.method, biomod.models.eval.meth)
+
 ###############
 #
 # evaluate(p, a, model, x, tr, ...)
@@ -80,171 +85,29 @@ getModelObject = function(model.name) {
 	model.obj = tryCatch(get(load(file=paste(model.dir, "model.object.RData", sep=""))), error = err.null)
 }
 
-# function to save evaluate output
-saveModelEvaluation = function(out.model) {
-	model.dir = paste(getwd(), "/", sep="")
-	save(out.model, file=paste(getwd(), "/eval.object.RData", sep=''))	# save the 'ModelEvalution' object
-	
-	# true skill statistic (TSS)
-	#tss = sensitivity + specificity - 1 == TPR + TNR - 1
-	# can be derived from evaluate() model output
-	#tss = out.model@TPR + out.model$TNR - 1
-	#EMG one for each confusion matrix, do we want to save them in a separate file?
-	
-	#omission = out.model@FNR
-	#EMG one for each confusion matrix, do we want to save them in a separate file?
-	
-	# Elith et al 2006 compares the AUC, COR, and Kappa values to assess predictive performance
-	# the Area under the Receiver Operating Characteristic curve (AUC) - ability to discriminate between sites where sp if present versus absent
-	# the correlation (COR) - between the observation in the PA dataset and the prediction
-	# Kappa - chance-corrected measure of agreement, requires a threshold
-	elith = c(out.model@auc, as.numeric(out.model@cor), max(out.model@kappa), out.model@t[which.max(out.model@kappa)])
-	write("AUC,COR,maxKAPPA,threshold@MaxKAPPA", file=paste(model.dir, "elith.txt", sep=""))
-	write(elith, file=paste(model.dir, "elith.txt", sep=""), sep=",", append=TRUE)
+# use model predictions to generate ModelEvaluation() per dismo package (copied code from dismo::evaluate.R)
+# EMG Note this computes statistics for each confusion matrix, while biomod2 returns single best statistic
+dismoModelEvaluation = function(p, a) {
 
-	# save AUC curve
-	png(file=paste(model.dir, "roc.png", sep='')); plot(out.model, 'ROC'); dev.off()
-	
-	# determine and save thresholds
-	# threshold() returns kappa, spec_sens, and no_omission thresholds
-	dismo.thresh = threshold(out.model)
-	minROCdistance = out.model@t[which.min(sqrt((1-out.model@TPR)^2 + (1-out.model@TNR)^2))]
-	write("kappa,spec_sens,no_omission,minROCdistance", file=paste(model.dir, "thresholds.txt", sep=""))
-	write(c(as.numeric(dismo.thresh),minROCdistance), file=paste(model.dir, "thresholds.txt", sep=""), sep=",", append=TRUE)
-}
-
-###evaluate the models and save the outputs
-if (evaluate.bioclim) {
-	bioclim.obj = getModelObject("bioclim")	# get the model object
-	if (!is.null(bioclim.obj)) {
-		bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model
-		saveModelEvaluation(bioclim.eval)	# save output
-		rm(list=c("bioclim.obj", "bioclim.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load bioclim.obj from", wd, "output_bioclim", sep=": "), stdout())
-	}
-} # end if bioclim
-	
-if (evaluate.domain) {
-	domain.obj = getModelObject("domain") # get the model object
-	if (!is.null(domain.obj)) {
-		domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model
-		saveModelEvaluation(domain.eval) 	# save output
-		rm(list=c("domain.obj", "domain.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load domain.obj from", wd, "output_domain", sep=": "), stdout())
-	}
-}
-
-if (evaluate.mahal) {
-	mahal.obj = getModelObject("mahal") # get the model object
-	if (!is.null(mahal.obj)) {
-		mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model
-		saveModelEvaluation(mahal.eval) 	# save output
-		rm(list=c("mahal.obj", "mahal.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load mahal.obj from", wd, "output_mahal", sep=": "), stdout())
-	}
-}
-
-if (evaluate.geodist) {
-	geodist.obj = getModelObject("geodist") # get the model object
-	if (!is.null(geodist.obj)) {
-		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model
-		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
-		saveModelEvaluation(geodist.eval) 	# save output
-		rm(list=c("geodist.obj", "geodist.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load geodist.obj from", wd, "output_geodist", sep=": "), stdout())
-	}
-}
-
-if (evaluate.convHull) {
-	convHull.obj = getModelObject("convHull") # get the model object
-	if (!is.null(convHull.obj)) {
-		convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(convHull.eval) 	# save output
-		rm(list=c("convHull.obj", "convHull.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load convHull.obj from", wd, "output_convHull", sep=": "), stdout())
-	}
-}
-
-if (evaluate.circles) {
-	circles.obj = getModelObject("circles") # get the model object
-	if (!is.null(circles.obj)) {
-		circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(circles.eval) 	# save output
-		rm(list=c("circles.obj", "circles.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load circles.obj from", wd, "output_circles", sep=": "), stdout())
-	}
-}
-
-if (evaluate.geoIDW) {
-	geoIDW.obj = getModelObject("geoIDW") # get the model object
-	if (!is.null(geoIDW.obj)) {
-		geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(geoIDW.eval) 	# save output
-		rm(list=c("geoIDW.obj", "geoIDW.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load geoIDW.obj from", wd, "output_geoIDW", sep=": "), stdout())
-	}
-}
-
-if (evaluate.voronoiHull) {
-	voronoiHull.obj = getModelObject("voronoiHull") # get the model object
-	if (!is.null(voronoiHull.obj)) {
-		voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], a=bkgd[c("lon","lat")]) # evaluate model
-		saveModelEvaluation(voronoiHull.eval) 	# save output
-		rm(list=c("voronoiHull.obj", "voronoiHull.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load voronoiHull.obj from", wd, "output_voronoiHull", sep=": "), stdout())
-	}
-}
-
-if (evaluate.brt) {
-	brt.obj = getModelObject("brt") # get the model object
-	if (!is.null(brt.obj)) {
-		# NOTE the order of arguments in the  predict function for brt; this is because
-		#	the function is defined outside of the dismo package
-		brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model
-		saveModelEvaluation(brt.eval) 	# save output
-		rm(list=c("brt.obj", "brt.eval")) #clean up the memory
-	} else {
-		write(paste("FAIL!", species, "Cannot load brt.obj from", wd, "output_brt", sep=": "), stdout())
-	}
-}
-
-if (evaluate.maxent) {
-	# read in the Maxent predictions at the presence and background points, and 
-	#	extract the columns we need
-	model.dir <- paste(wd, "/output_maxent", sep="")
-	presence <- read.csv(paste(model.dir, "/", sp, "_samplePredictions.csv", sep=""))
-	background <- read.csv(paste(model.dir, "/", sp, "_backgroundPredictions.csv", sep=""))
-	p <- presence$Logistic.prediction
-	a <- background$logistic
-	
-	# use predictions to generate ModelEvaluation() per dismo package (copy code from dismo::evaluate.R)
 	# evaluate() default thresholds are one per prediction, unless > 1000
 	
 	np <- length(p)
 	na <- length(a)
 
-		if (length(p) > 1000) {
-			tr <- as.vector(quantile(p, 0:1000/1000))
-		} else {
-			tr <- p
-		}
-		if (length(a) > 1000) {
-			tr <- c(tr, as.vector(quantile(a, 0:1000/1000)))
-		} else {
-			tr <- c(tr, a)
-		}
-		tr <- sort(unique( round(tr, 8)))
-		tr <- c( tr - 0.0001, tr[length(tr)] + c(0, 0.0001))
-		
-		N <- na + np
+	if (length(p) > 1000) {
+		tr <- as.vector(quantile(p, 0:1000/1000))
+	} else {
+		tr <- p
+	}
+	if (length(a) > 1000) {
+		tr <- c(tr, as.vector(quantile(a, 0:1000/1000)))
+	} else {
+		tr <- c(tr, a)
+	}
+	tr <- sort(unique( round(tr, 8)))
+	tr <- c( tr - 0.0001, tr[length(tr)] + c(0, 0.0001))
+	
+	N <- na + np
 
 	xc <- new('ModelEvaluation')
 	xc@presence = p
@@ -273,7 +136,7 @@ if (evaluate.maxent) {
 	b = res[,2]
 	c = res[,3]
 	d = res[,4]
-# after Fielding and Bell	
+	# after Fielding and Bell	
 	xc@np <- as.integer(np)
 	xc@na <- as.integer(na)
 	xc@prevalence = (a + c) / N
@@ -294,8 +157,239 @@ if (evaluate.maxent) {
 	prE = prY + prN
 	xc@kappa = (prA - prE) / (1-prE)
 	
-	saveModelEvaluation(xc)	# save output
-	rm(xc); #clean up the memory
+	return(xc)
+}
+
+# function to save evaluate output
+saveModelEvaluation = function(out.model, out.combined.model) {
+	model.dir = paste(getwd(), "/", sep="")
+	save(out.model, file=paste(getwd(), "/dismo.eval.object.RData", sep=''))	# save the 'dismo::ModelEvalution' object
+
+	# save all the model accuracy statistics provided in both dismo and biomod2
+	rownames(out.combined.model) <- c("Testing.data","Cutoff","Sensitivity", "Specificity")
+	write.csv(t(round(out.combined.model, digits=3)), file=paste(getwd(), "/combined.modelEvaluation.csv", sep=""))
+
+	# save AUC curve
+	png(file=paste(model.dir, "roc.png", sep='')); plot(out.model, 'ROC'); dev.off()
+	
+	# determine and save thresholds
+	# threshold() returns kappa, spec_sens, and no_omission thresholds
+	dismo.thresh = threshold(out.model)
+	minROCdistance = out.model@t[which.min(sqrt((1-out.model@TPR)^2 + (1-out.model@TNR)^2))]
+	write("kappa,spec_sens,no_omission,minROCdistance", file=paste(model.dir, "thresholds.txt", sep=""))
+	write(c(as.numeric(dismo.thresh),minROCdistance), file=paste(model.dir, "thresholds.txt", sep=""), sep=",", append=TRUE)
+	# EMG kappa is different from above
+}
+
+###evaluate the models and save the outputs
+if (evaluate.bioclim) {
+	bioclim.obj = getModelObject("bioclim")	# get the model object
+	if (!is.null(bioclim.obj)) {
+		bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		bioclim.fit = c(bioclim.eval@presence, bioclim.eval@absence)
+		bioclim.obs = c(rep(1, length(bioclim.eval@presence)), rep(0, length(bioclim.eval@absence)))
+#		bioclim.obs = c(rep(1, nrow(occur)), rep(0, nrow(bkgd))) # EMG not sure which is better, should be same result
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		bioclim.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = bioclim.fit, Obs = bioclim.obs))
+		})
+		saveModelEvaluation(bioclim.eval, bioclim.combined.eval)	# save output
+		rm(list=c("bioclim.obj", "bioclim.eval", "bioclim.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load bioclim.obj from", wd, "output_bioclim", sep=": "), stdout())
+	}
+} # end if bioclim
+	
+if (evaluate.domain) {
+	domain.obj = getModelObject("domain") # get the model object
+	if (!is.null(domain.obj)) {
+		domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		domain.fit = c(domain.eval@presence, domain.eval@absence)
+		domain.obs = c(rep(1, length(domain.eval@presence)), rep(0, length(domain.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		domain.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = domain.fit, Obs = domain.obs))
+		})
+		saveModelEvaluation(domain.eval, domain.combined.eval)	# save output
+		rm(list=c("domain.obj", "domain.eval", "domain.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load domain.obj from", wd, "output_domain", sep=": "), stdout())
+	}
+}
+
+if (evaluate.mahal) {
+	mahal.obj = getModelObject("mahal") # get the model object
+	if (!is.null(mahal.obj)) {
+		mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		mahal.fit = c(mahal.eval@presence, mahal.eval@absence)
+		mahal.obs = c(rep(1, length(mahal.eval@presence)), rep(0, length(mahal.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		mahal.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = mahal.fit, Obs = mahal.obs))
+		})
+		saveModelEvaluation(mahal.eval, mahal.combined.eval)	# save output
+		rm(list=c("mahal.obj", "mahal.eval", "mahal.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load mahal.obj from", wd, "output_mahal", sep=": "), stdout())
+	}
+}
+
+if (evaluate.geodist) {
+	geodist.obj = getModelObject("geodist") # get the model object
+	if (!is.null(geodist.obj)) {
+		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		geodist.fit = c(geodist.eval@presence, geodist.eval@absence)
+		geodist.obs = c(rep(1, length(geodist.eval@presence)), rep(0, length(geodist.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		geodist.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = geodist.fit, Obs = geodist.obs))
+		})
+		saveModelEvaluation(geodist.eval, geodist.combined.eval)	# save output
+		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
+		rm(list=c("geodist.obj", "geodist.eval", "geodist.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load geodist.obj from", wd, "output_geodist", sep=": "), stdout())
+	}
+}
+
+if (evaluate.convHull) {
+	convHull.obj = getModelObject("convHull") # get the model object
+	if (!is.null(convHull.obj)) {
+		convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], 
+			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		convHull.fit = c(convHull.eval@presence, convHull.eval@absence)
+		convHull.obs = c(rep(1, length(convHull.eval@presence)), rep(0, length(convHull.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		convHull.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = convHull.fit, Obs = convHull.obs))
+		})
+		saveModelEvaluation(convHull.eval, convHull.combined.eval)	# save output
+		rm(list=c("convHull.obj", "convHull.eval", "convHull.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load convHull.obj from", wd, "output_convHull", sep=": "), stdout())
+	}
+}
+
+if (evaluate.circles) {
+	circles.obj = getModelObject("circles") # get the model object
+	if (!is.null(circles.obj)) {
+		circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], 
+			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		circles.fit = c(circles.eval@presence, circles.eval@absence)
+		circles.obs = c(rep(1, length(circles.eval@presence)), rep(0, length(circles.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		circles.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = circles.fit, Obs = circles.obs))
+		})
+		saveModelEvaluation(circles.eval, circles.combined.eval)	# save output
+		rm(list=c("circles.obj", "circles.eval", "circles.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load circles.obj from", wd, "output_circles", sep=": "), stdout())
+	}
+}
+
+if (evaluate.geoIDW) {
+	geoIDW.obj = getModelObject("geoIDW") # get the model object
+	if (!is.null(geoIDW.obj)) {
+		geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], 
+			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		geoIDW.fit = c(geoIDW.eval@presence, geoIDW.eval@absence)
+		geoIDW.obs = c(rep(1, length(geoIDW.eval@presence)), rep(0, length(geoIDW.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		geoIDW.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = geoIDW.fit, Obs = geoIDW.obs))
+		})
+		saveModelEvaluation(geoIDW.eval, geoIDW.combined.eval)	# save output
+		rm(list=c("geoIDW.obj", "geoIDW.eval", "geoIDW.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load geoIDW.obj from", wd, "output_geoIDW", sep=": "), stdout())
+	}
+}
+
+if (evaluate.voronoiHull) {
+	voronoiHull.obj = getModelObject("voronoiHull") # get the model object
+	if (!is.null(voronoiHull.obj)) {
+		voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], 
+			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		voronoiHull.fit = c(voronoiHull.eval@presence, voronoiHull.eval@absence)
+		voronoiHull.obs = c(rep(1, length(voronoiHull.eval@presence)), rep(0, length(voronoiHull.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		voronoiHull.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = voronoiHull.fit, Obs = voronoiHull.obs))
+		})
+		saveModelEvaluation(voronoiHull.eval, voronoiHull.combined.eval)	# save output
+		rm(list=c("voronoiHull.obj", "voronoiHull.eval", "voronoiHull.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load voronoiHull.obj from", wd, "output_voronoiHull", sep=": "), stdout())
+	}
+}
+
+if (evaluate.brt) {
+	brt.obj = getModelObject("brt") # get the model object
+	if (!is.null(brt.obj)) {
+		# NOTE the order of arguments in the  predict function for brt; this is because
+		#	the function is defined outside of the dismo package
+		brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model using dismo's evaluate
+		
+		# need predictions and observed values to create confusion matrices for accuracy statistics
+		brt.fit = c(brt.eval@presence, brt.eval@absence)
+		brt.obs = c(rep(1, length(brt.eval@presence)), rep(0, length(brt.eval@absence)))
+
+		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+		brt.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = brt.fit, Obs = brt.obs))
+		})
+		saveModelEvaluation(brt.eval, brt.combined.eval)	# save output
+		rm(list=c("brt.obj", "brt.eval", "brt.combined.eval")) #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot load brt.obj from", wd, "output_brt", sep=": "), stdout())
+	}
+}
+
+if (evaluate.maxent) {
+	# read in the Maxent predictions at the presence and background points, and 
+	#	extract the columns we need
+	model.dir <- paste(wd, "output_maxent", sep=""); setwd(model.dir);
+	presence <- read.csv(paste(model.dir, "/", species, "_samplePredictions.csv", sep=""))
+	background <- read.csv(paste(model.dir, "/", species, "_backgroundPredictions.csv", sep=""))
+	log.presence <- presence$Logistic.prediction
+	log.absence <- background$logistic
+	maxent.eval.obj = dismoModelEvaluation(log.presence, log.absence) # use predictions to generate dismo-like model evaluation object
+		
+	# need predictions and observed values to create confusion matrices for accuracy statistics
+	maxent.fit = c(log.presence, log.absence)
+	maxent.obs = c(rep(1, length(log.presence)), rep(0, length(log.absence)))
+
+	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+	maxent.combined.eval = sapply(model.accuracy, function(x){
+			return(my.Find.Optim.Stat(Stat = x, Fit = maxent.fit, Obs = maxent.obs))
+		})
+	saveModelEvaluation(maxent.eval.obj, maxent.combined.eval)	# save output
+	rm(list=c("maxent.eval.obj", "maxent.combined.eval")); #clean up the memory
 }
 
 ############### BIOMOD2 Models ###############
@@ -324,25 +418,25 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	# get and save the model evaluation statistics
 	# EMG these must specified during model creation with the arg "models.eval.meth"
 	evaluation = getModelsEvaluations(biomod.model)
-	write.csv(evaluation, file=paste(getwd(), "/modelEvaluation.txt", sep=""))
+	write.csv(evaluation, file=paste(getwd(), "/biomod2.modelEvaluation.txt", sep=""))
 
-	# save AUC curve
-	# need predictions at the presence and background points and observed values
+	# get the model predictions and observed values
 	predictions = getModelsPrediction(biomod.model); obs = attributes(getModelsInputData(biomod.model))[[3]];
+
+	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
+	combined.eval = sapply(model.accuracy, function(x){
+		return(my.Find.Optim.Stat(Stat = x, Fit = predictions, Obs = obs))
+	})
+	# save all the model accuracy statistics provided in both dismo and biomod2
+	rownames(combined.eval) <- c("Testing.data","Cutoff","Sensitivity", "Specificity")
+	write.csv(t(round(combined.eval, digits=3)), file=paste(getwd(), "/combined.modelEvaluation.csv", sep=""))
+		
+	# save AUC curve
 	require(pROC, quietly=T)
     roc1 <- roc(as.numeric(obs), as.numeric(predictions), percent=T)
-	png(file=paste(getwd(), "/roc.png", sep=''))
+	png(file=paste(getwd(), "/pROC.png", sep=''))
 	plot(roc1, main=paste("AUC=",round(auc(roc1)/100,3),sep=""), legacy.axes=TRUE)
 	dev.off()
-
-	# COR not one of the methods provided automatically
-	# COR <- try( cor.test(c(p,a), c(rep(1, length(p)), rep(0, length(a))) ), silent=TRUE )
-	p = predictions[1:nrow(occur)]; a = predictions[nrow(occur)+1:nrow(predictions)]
-	COR <- try( cor.test(c(p,a), c(rep(1, length(p)), rep(0, length(a))) ), silent=TRUE )
-
-	elith = c(auc(roc1)/100, as.numeric(COR$estimate), evaluation[[1]], evaluation[[4]])
-	write("AUC,COR,maxKAPPA,threshold@MaxKAPPA", file=paste(getwd(), "/elith.txt", sep=""))
-	write(elith, file=paste(getwd(), "/elith.txt", sep=""), sep=",", append=TRUE)
 	
 	# get and save the variable importance estimates
 	variableImpt = getModelsVarImport(biomod.model)

@@ -19,16 +19,22 @@ species <- c("ABT")	#define the species of interest
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
 ### define the models to be used for evaluation
-evaluate.bioclim = FALSE #boolean to evaluate BIOCLIM algorithm 
-evaluate.domain = FALSE #boolean to evaluate DOMAIN algorithm -- envirodata should have same number of data layers as model creation
-evaluate.mahal = FALSE #boolean to evaluate MAHALANOBIS algorithm
-evaluate.geodist = FALSE #boolean to evaluate geographic distances algorithm
-evaluate.convHull = FALSE #boolean to evaluate convex hulls algorithm 
-evaluate.circles = FALSE #boolean to evaluate circles algorithm 
-evaluate.geoIDW = FALSE #boolean to evaluate inverse distance weighted algorithm
-evaluate.voronoiHull = FALSE #boolean to evaluate Voronoi Hulls algorithm
-evaluate.brt = FALSE #boolean to evaluate Boosted regression tree algorithm
+evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 
+evaluate.domain = TRUE #boolean to evaluate DOMAIN algorithm -- envirodata should have same number of data layers as model creation
+evaluate.mahal = TRUE #boolean to evaluate MAHALANOBIS algorithm
+evaluate.geodist = TRUE #boolean to evaluate geographic distances algorithm
+evaluate.convHull = TRUE #boolean to evaluate convex hulls algorithm 
+evaluate.circles = TRUE #boolean to evaluate circles algorithm 
+evaluate.geoIDW = TRUE #boolean to evaluate inverse distance weighted algorithm
+evaluate.voronoiHull = TRUE #boolean to evaluate Voronoi Hulls algorithm
+evaluate.brt = TRUE #boolean to evaluate Boosted regression tree algorithm
 evaluate.maxent = FALSE #boolean to evaluate maxent algorithm
+
+# model accuracy statistics 
+# these are available from dismo::evaluate.R NOT originally implemented in biomod2::Evaluate.models.R
+dismo.eval.method = c("ODP", "TNR", "FPR", "FNR", "NPP", "MCR", "OR")
+# and vice versa
+biomod.models.eval.meth = c("KAPPA", "TSS", "ROC", "FAR", "SR", "ACCURACY", "BIAS", "POD", "CSI", "ETS")
 
 ############### BIOMOD2 Models ###############
 evaluate.glm = TRUE #boolean to evaluate generalized linear model algorithm
@@ -40,7 +46,7 @@ evaluate.sre = TRUE #boolean to evaluate surface range envelop algorithm
 evaluate.fda = TRUE #boolean to evaluate flexible discriminant analysis algorithm
 evaluate.mars = TRUE #boolean to evaluate multiple adaptive regression splines algorithm
 evaluate.rf = TRUE #boolean to evaluate random forest algorithm
-evaluate.biomod.maxent = TRUE #boolean to evaluate {biomod} maxent algorithm
+evaluate.biomod.maxent = FALSE #boolean to evaluate {biomod} maxent algorithm
 
 #*************** UNDER CONSTRUCTION ***************
 
