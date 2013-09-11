@@ -181,6 +181,48 @@ saveModelEvaluation = function(out.model, out.combined.model) {
 	# EMG kappa is different from above
 }
 
+# function to generate response curves for dismo models
+createMarginalResponseCurves = function(out.model, model.name) {
+	model.dir = paste(getwd(), "/", sep="")
+
+	# get the enviromental variables and values used to create the model
+	if (model.name == "brt") {
+		model.values = matrix(out.model$data$x, ncol=length(out.model$var.names)); env.vars = out.model$var.names;
+	} else if (model.name %in% c("geoIDW", "voronoiHull")) {
+		model.values = rbind(out.model@presence, out.model@absence); env.vars = colnames(model.values);
+	} else {
+		model.values = out.model@presence; env.vars = colnames(model.values);
+	}
+	
+	# create a matrix to hold average values for each environmental variable
+	mean.values = matrix(data = NA, nrow = 100, ncol = length(env.vars)); colnames(mean.values) = env.vars;
+	# for each variable, populate the column with the mean value
+	for (i in 1:ncol(mean.values)) {
+		mean.values[,i] = rep(mean(model.values[,i], na.rm=TRUE), 100)
+	}
+	
+	# create a plot window and pdf out file
+	pdf(file=paste(model.dir, "mean_response_curves.pdf", sep=''))
+		par(mfrow=c(4,4), mar=c(2,2,2,1))
+	
+	# allow each environmental variable to vary, keeping other variable values at average, and predict suitability
+	for (j in 1:ncol(mean.values)) {
+		range.values = seq(min(model.values[,j]), max(model.values[,j]), length.out=100)
+		temp.data = mean.values
+		temp.data[,j] = range.values
+		if (model.name == "brt") {
+			colnames(temp.data) = env.vars
+			new.predictions = predict(out.model, as.data.frame(temp.data), n.trees = out.model$gbm.call$best.trees, type = "response")
+		} else {
+			new.predictions = predict(out.model, temp.data)
+		}
+		
+		plot(range.values, new.predictions, ylim=c(0,1), xlab="", ylab="", main=env.vars[j], type="l")
+		rug(model.values[,j])
+	}
+	dev.off()
+}
+
 ###evaluate the models and save the outputs
 if (evaluate.bioclim) {
 	bioclim.obj = getModelObject("bioclim")	# get the model object
@@ -190,13 +232,16 @@ if (evaluate.bioclim) {
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		bioclim.fit = c(bioclim.eval@presence, bioclim.eval@absence)
 		bioclim.obs = c(rep(1, length(bioclim.eval@presence)), rep(0, length(bioclim.eval@absence)))
-#		bioclim.obs = c(rep(1, nrow(occur)), rep(0, nrow(bkgd))) # EMG not sure which is better, should be same result
 
 		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
 		bioclim.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = bioclim.fit, Obs = bioclim.obs))
 		})
 		saveModelEvaluation(bioclim.eval, bioclim.combined.eval)	# save output
+		
+		# create response curves
+		createMarginalResponseCurves(bioclim.obj, "bioclim")
+		
 		rm(list=c("bioclim.obj", "bioclim.eval", "bioclim.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load bioclim.obj from", wd, "output_bioclim", sep=": "), stdout())
@@ -217,6 +262,10 @@ if (evaluate.domain) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = domain.fit, Obs = domain.obs))
 		})
 		saveModelEvaluation(domain.eval, domain.combined.eval)	# save output
+				
+		# create response curves
+		createMarginalResponseCurves(domain.obj, "domain")
+		
 		rm(list=c("domain.obj", "domain.eval", "domain.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load domain.obj from", wd, "output_domain", sep=": "), stdout())
@@ -237,6 +286,10 @@ if (evaluate.mahal) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = mahal.fit, Obs = mahal.obs))
 		})
 		saveModelEvaluation(mahal.eval, mahal.combined.eval)	# save output
+				
+		# create response curves
+		createMarginalResponseCurves(mahal.obj, "mahal")
+		
 		rm(list=c("mahal.obj", "mahal.eval", "mahal.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load mahal.obj from", wd, "output_mahal", sep=": "), stdout())
@@ -247,6 +300,7 @@ if (evaluate.geodist) {
 	geodist.obj = getModelObject("geodist") # get the model object
 	if (!is.null(geodist.obj)) {
 		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model using dismo's evaluate
+		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		geodist.fit = c(geodist.eval@presence, geodist.eval@absence)
@@ -257,7 +311,10 @@ if (evaluate.geodist) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = geodist.fit, Obs = geodist.obs))
 		})
 		saveModelEvaluation(geodist.eval, geodist.combined.eval)	# save output
-		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
+				
+		# create response curves
+		createMarginalResponseCurves(geodist.obj, "geodist")
+
 		rm(list=c("geodist.obj", "geodist.eval", "geodist.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load geodist.obj from", wd, "output_geodist", sep=": "), stdout())
@@ -279,6 +336,10 @@ if (evaluate.convHull) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = convHull.fit, Obs = convHull.obs))
 		})
 		saveModelEvaluation(convHull.eval, convHull.combined.eval)	# save output
+						
+		# create response curves
+		createMarginalResponseCurves(convHull.obj, "convHull")
+		
 		rm(list=c("convHull.obj", "convHull.eval", "convHull.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load convHull.obj from", wd, "output_convHull", sep=": "), stdout())
@@ -300,6 +361,10 @@ if (evaluate.circles) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = circles.fit, Obs = circles.obs))
 		})
 		saveModelEvaluation(circles.eval, circles.combined.eval)	# save output
+						
+		# create response curves
+		createMarginalResponseCurves(circles.obj, "circles")
+		
 		rm(list=c("circles.obj", "circles.eval", "circles.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load circles.obj from", wd, "output_circles", sep=": "), stdout())
@@ -321,6 +386,10 @@ if (evaluate.geoIDW) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = geoIDW.fit, Obs = geoIDW.obs))
 		})
 		saveModelEvaluation(geoIDW.eval, geoIDW.combined.eval)	# save output
+						
+		# create response curves
+		createMarginalResponseCurves(geoIDW.obj, "geoIDW")
+		
 		rm(list=c("geoIDW.obj", "geoIDW.eval", "geoIDW.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load geoIDW.obj from", wd, "output_geoIDW", sep=": "), stdout())
@@ -342,6 +411,10 @@ if (evaluate.voronoiHull) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = voronoiHull.fit, Obs = voronoiHull.obs))
 		})
 		saveModelEvaluation(voronoiHull.eval, voronoiHull.combined.eval)	# save output
+						
+		# create response curves
+		createMarginalResponseCurves(voronoiHull.obj, "voronoiHull")
+		
 		rm(list=c("voronoiHull.obj", "voronoiHull.eval", "voronoiHull.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load voronoiHull.obj from", wd, "output_voronoiHull", sep=": "), stdout())
@@ -364,6 +437,10 @@ if (evaluate.brt) {
 			return(my.Find.Optim.Stat(Stat = x, Fit = brt.fit, Obs = brt.obs))
 		})
 		saveModelEvaluation(brt.eval, brt.combined.eval)	# save output
+						
+		# create response curves
+		createMarginalResponseCurves(brt.obj, "brt")
+		
 		rm(list=c("brt.obj", "brt.eval", "brt.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load brt.obj from", wd, "output_brt", sep=": "), stdout())
@@ -448,11 +525,11 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	}
 
 	# save response curves (Elith et al 2005)
-	png(file=paste(getwd(), "/response_curves.png", sep=''))
-		response.plot2(models = loaded.name, Data = getModelsInputData(biomod.model,"expl.var"),
-			show.variables = getModelsInputData(biomod.model,"expl.var.names"),
-			do.bivariate = FALSE, fixed.var.metric = "median", col = c("blue", "red"),
-			legend = TRUE, data_species = getModelsInputData(biomod.model,"resp.var"))
+	png(file=paste(getwd(), "/mean_response_curves.png", sep=''))
+		test=response.plot2(models = loaded.name, Data = getModelsInputData(biomod.model,"expl.var"),
+			show.variables = getModelsInputData(biomod.model,"expl.var.names"), fixed.var.metric = "mean") 
+			#, data_species = getModelsInputData(biomod.model,"resp.var"))
+			# EMG need to investigate why you would want to use this option - uses presence data only
 	dev.off()
 }
 
