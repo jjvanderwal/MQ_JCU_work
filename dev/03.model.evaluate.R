@@ -181,7 +181,8 @@ saveModelEvaluation = function(out.model, out.combined.model) {
 	# EMG kappa is different from above
 }
 
-# function to generate response curves for dismo models
+# function to generate marginal (mean) response curves for dismo models
+# i.e., hold all but one predictor variable to its mean value and recalculate model predictions
 createMarginalResponseCurves = function(out.model, model.name) {
 	model.dir = paste(getwd(), "/", sep="")
 
@@ -193,36 +194,170 @@ createMarginalResponseCurves = function(out.model, model.name) {
 	} else {
 		model.values = out.model@presence; env.vars = colnames(model.values);
 	}
-	
-	# create a matrix to hold average values for each environmental variable
-	mean.values = matrix(data = NA, nrow = 100, ncol = length(env.vars)); colnames(mean.values) = env.vars;
-	# for each variable, populate the column with the mean value
-	for (i in 1:ncol(mean.values)) {
-		mean.values[,i] = rep(mean(model.values[,i], na.rm=TRUE), 100)
-	}
-	
-	# create a plot window and pdf out file
-	pdf(file=paste(model.dir, "mean_response_curves.pdf", sep=''))
-		par(mfrow=c(4,4), mar=c(2,2,2,1))
-	
-	# allow each environmental variable to vary, keeping other variable values at average, and predict suitability
-	for (j in 1:ncol(mean.values)) {
-		range.values = seq(min(model.values[,j]), max(model.values[,j]), length.out=100)
-		temp.data = mean.values
-		temp.data[,j] = range.values
-		if (model.name == "brt") {
-			colnames(temp.data) = env.vars
-			new.predictions = predict(out.model, as.data.frame(temp.data), n.trees = out.model$gbm.call$best.trees, type = "response")
-		} else {
-			new.predictions = predict(out.model, temp.data)
+
+	if (!(length(model.values)==0)) {
+
+		# create a matrix to hold average values for each environmental variable
+		mean.values = matrix(data = NA, nrow = 100, ncol = length(env.vars)); colnames(mean.values) = env.vars;
+		# for each variable, populate the column with the mean value
+		for (i in 1:ncol(mean.values)) {
+			mean.values[,i] = rep(mean(model.values[,i], na.rm=TRUE), 100)
 		}
-		
-		plot(range.values, new.predictions, ylim=c(0,1), xlab="", ylab="", main=env.vars[j], type="l")
-		rug(model.values[,j])
+	
+		# allow each environmental variable to vary, keeping other variable values at average, and predict suitability
+		for (j in 1:ncol(mean.values)) {
+			range.values = seq(min(model.values[,j]), max(model.values[,j]), length.out=100)
+			temp.data = mean.values
+			temp.data[,j] = range.values
+			if (model.name == "brt") {
+				colnames(temp.data) = env.vars
+				new.predictions = predict(out.model, as.data.frame(temp.data), n.trees = out.model$gbm.call$best.trees, type = "response")
+			} else {
+				new.predictions = predict(out.model, temp.data)
+			}
+			
+			# create separate file for each response curve
+			save.name = env.vars[j]
+			png(file=paste(model.dir, save.name, "_response.png", sep=""))
+				plot(range.values, new.predictions, ylim=c(0,1), xlab="", ylab="", main=save.name, type="l")
+				rug(model.values[,j])
+			dev.off()
+		}
+	} else {
+		write(paste(species, ": Cannot create response curves from", model.name, "object", sep=" "), stdout())
 	}
-	dev.off()
 }
 
+# function to calculate variable importance values for dismo models based on biomod2's correlation between predictions
+# i.e., hold all but one predictor variable to its actual values, resample that one predictor and recalculate model predictions
+calculateVariableImpt = function(out.model, model.name, num_samples) {
+# EMG num_samples should be same as biomod.VarImport arg set in 01.init.args.model.current.R 
+	model.dir = paste(getwd(), "/", sep="")
+	
+	# get the enviromental variables and values used to create the model
+	# EMG this is duplicated from above, should be able to combine
+	if (model.name == "brt") {
+		model.values = matrix(out.model$data$x, ncol=length(out.model$var.names)); env.vars = out.model$var.names;
+		colnames(model.values) = env.vars
+	} else if (model.name %in% c("geoIDW", "voronoiHull")) {
+		model.values = rbind(out.model@presence, out.model@absence); env.vars = colnames(model.values);
+	} else {
+		model.values = out.model@presence; env.vars = colnames(model.values);
+	}
+
+	if (!(length(model.values)==0)) {
+	
+		# predict using actual values
+		if (model.name == "brt") {
+			actual.predictions = predict(out.model, as.data.frame(model.values), n.trees = out.model$gbm.call$best.trees, type = "response")
+		} else {
+			actual.predictions = predict(out.model, model.values)
+		} 
+
+		# create a table to hold the output
+		varimpt.out = matrix(NA, nrow=length(env.vars), ncol=num_samples+2)
+		dimnames(varimpt.out) = list(env.vars, c(paste("sample_", c(1:num_samples, "mean")), "percent"))
+		
+		# create a copy of the env data matrix
+		sample.data = model.values
+		
+		# for each predictor variable 
+		for (p in 1:ncol(sample.data)) {
+
+			# for each num_sample
+			for (s in 1:num_samples) {
+					
+				# resample from that variables' values, keeping other variable values the same, and predict suitability
+				sample.data[,p] = sample(x=sample.data[,p], replace=FALSE)
+
+				# predict using sampled values
+				if (model.name == "brt") {
+					new.predictions = predict(out.model, as.data.frame(sample.data), n.trees = out.model$gbm.call$best.trees, type = "response")
+				} else {
+					new.predictions = predict(out.model, sample.data)
+				}
+			
+				# calculate correlation between original predictions and new predictions
+				varimpt.out[p,s] = 1-max(round(cor(x=actual.predictions, y=new.predictions, use="pairwise.complete.obs",
+					method="pearson"), digits=3),0)
+			}		
+		}
+		
+		# calculate mean variable importance, normalize to percentages, and write results
+		varimpt.out[,num_samples+1] = round(rowMeans(varimpt.out, na.rm=TRUE), digits=3)
+		varimpt.out[,num_samples+2] = round((varimpt.out[,num_samples+1]/sum(varimpt.out[,num_samples+1]))*100, digits=0)
+		write.csv(varimpt.out, file=paste(getwd(), "/biomod2_like_VariableImportance.csv", sep=""))
+	} else {
+		write(paste(species, ": Cannot calculate variable importance for ", model.name, "object", sep=" "), stdout())
+	}
+}
+
+# function to calculate variable importance values for dismo models based on Maxent's decrease in AUC 
+# i.e., hold all but one predictor variable to its original values, resample that one predictor and recalculate model AUC
+calculatePermutationVarImpt = function(out.model, model.eval, model.name) {
+
+	model.dir = paste(getwd(), "/", sep="")
+	
+	# get the enviromental variables and values used to create the model
+	# EMG this is duplicated from above, should be able to combine or find an easier way to determine
+	if (model.name == "brt") {
+		model.values = matrix(out.model$data$x, ncol=length(out.model$var.names)); env.vars = out.model$var.names;
+		colnames(model.values) = env.vars
+	} else if (model.name %in% c("geoIDW", "voronoiHull")) {
+		model.values = rbind(out.model@presence, out.model@absence); env.vars = colnames(model.values);
+	} else {
+		model.values = out.model@presence; env.vars = colnames(model.values);
+	}
+
+	if (!(length(model.values)==0)) {
+	
+		# get the occurrence and background environmental data used to evaluate the model
+		p.swd=occur
+		a.swd=bkgd
+			
+		# get the AUC from the original model evaluation
+		init.auc = round(model.eval@auc, digits=3)
+		
+		# create a table to hold the output
+		permvarimpt.out = matrix(NA, nrow=length(env.vars), ncol=4)
+		dimnames(permvarimpt.out) = list(env.vars, c("init.auc", "sample.auc", "change.auc", "percent"))
+		permvarimpt.out[,"init.auc"] = rep(init.auc, length(env.vars))
+		
+		# create a copy of the occurrence and background environmental data
+		sample.p = p.swd[,env.vars]
+		sample.a = a.swd[,env.vars]
+			
+		# for each predictor variable 
+		for (v in 1:length(env.vars)) {
+					
+			# resample from that variables' values, keeping other variable values the same, and 
+			sample.p[,v] = sample(x=sample.p[,v], replace=FALSE)
+			sample.a[,v] = sample(x=sample.a[,v], replace=FALSE)
+
+			# re-evaluate model with sampled env values
+			if (model.name == "brt") {
+				sample.eval = evaluate(p=sample.p, a=sample.a, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees)
+			} else {
+				sample.eval = evaluate(p=sample.p, a=sample.a, model=out.model)
+			}
+			# get the new auc
+			permvarimpt.out[v,"sample.auc"] = round(sample.eval@auc, digits=3)
+		}
+		
+		# calculate the difference in auc, normalize to percentages, and write results
+		permvarimpt.out[,"change.auc"] = permvarimpt.out[,"init.auc"] - permvarimpt.out[,"sample.auc"]
+		for (r in 1:nrow(permvarimpt.out)) {
+			if (permvarimpt.out[r,"change.auc"] < 0) {  # EMG what if AUC increases?
+				permvarimpt.out[r,"change.auc"] = 0
+			}
+		}
+		permvarimpt.out[,"percent"] = round((permvarimpt.out[,"change.auc"]/sum(permvarimpt.out[,"change.auc"]))*100, digits=0)
+		write.csv(permvarimpt.out, file=paste(getwd(), "/maxent_like_VariableImportance.csv", sep=""))
+	} else {
+		write(paste(species, ": Cannot calculate maxent-like variable importance for ", model.name, "object", sep=" "), stdout())
+	}
+}
+	
 ###evaluate the models and save the outputs
 if (evaluate.bioclim) {
 	bioclim.obj = getModelObject("bioclim")	# get the model object
@@ -241,6 +376,12 @@ if (evaluate.bioclim) {
 		
 		# create response curves
 		createMarginalResponseCurves(bioclim.obj, "bioclim")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(bioclim.obj, "bioclim", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(bioclim.obj, bioclim.eval, "bioclim")
 		
 		rm(list=c("bioclim.obj", "bioclim.eval", "bioclim.combined.eval")) #clean up the memory
 	} else {
@@ -265,6 +406,12 @@ if (evaluate.domain) {
 				
 		# create response curves
 		createMarginalResponseCurves(domain.obj, "domain")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(domain.obj, "domain", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(domain.obj, domain.eval, "domain")
 		
 		rm(list=c("domain.obj", "domain.eval", "domain.combined.eval")) #clean up the memory
 	} else {
@@ -289,6 +436,12 @@ if (evaluate.mahal) {
 				
 		# create response curves
 		createMarginalResponseCurves(mahal.obj, "mahal")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(mahal.obj, "mahal", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(mahal.obj, mahal.eval, "mahal")
 		
 		rm(list=c("mahal.obj", "mahal.eval", "mahal.combined.eval")) #clean up the memory
 	} else {
@@ -315,6 +468,12 @@ if (evaluate.geodist) {
 		# create response curves
 		createMarginalResponseCurves(geodist.obj, "geodist")
 
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(geodist.obj, "geodist", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(geodist.obj, geodist.eval, "geodist")
+		
 		rm(list=c("geodist.obj", "geodist.eval", "geodist.combined.eval")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load geodist.obj from", wd, "output_geodist", sep=": "), stdout())
@@ -339,6 +498,12 @@ if (evaluate.convHull) {
 						
 		# create response curves
 		createMarginalResponseCurves(convHull.obj, "convHull")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(convHull.obj, "convHull", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(convHull.obj, convHull.eval, "convHull")
 		
 		rm(list=c("convHull.obj", "convHull.eval", "convHull.combined.eval")) #clean up the memory
 	} else {
@@ -364,6 +529,12 @@ if (evaluate.circles) {
 						
 		# create response curves
 		createMarginalResponseCurves(circles.obj, "circles")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(circles.obj, "circles", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(circles.obj, circles.eval, "circles")
 		
 		rm(list=c("circles.obj", "circles.eval", "circles.combined.eval")) #clean up the memory
 	} else {
@@ -389,6 +560,12 @@ if (evaluate.geoIDW) {
 						
 		# create response curves
 		createMarginalResponseCurves(geoIDW.obj, "geoIDW")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(geoIDW.obj, "geoIDW", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(geoIDW.obj, geoIDW.eval, "geoIDW")
 		
 		rm(list=c("geoIDW.obj", "geoIDW.eval", "geoIDW.combined.eval")) #clean up the memory
 	} else {
@@ -414,6 +591,12 @@ if (evaluate.voronoiHull) {
 						
 		# create response curves
 		createMarginalResponseCurves(voronoiHull.obj, "voronoiHull")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(voronoiHull.obj, "voronoiHull", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(voronoiHull.obj, voronoiHull.eval, "voronoiHull")
 		
 		rm(list=c("voronoiHull.obj", "voronoiHull.eval", "voronoiHull.combined.eval")) #clean up the memory
 	} else {
@@ -440,6 +623,12 @@ if (evaluate.brt) {
 						
 		# create response curves
 		createMarginalResponseCurves(brt.obj, "brt")
+
+		# calculate variable importance (like biomod2, using correlations between predictions)
+		calculateVariableImpt(brt.obj, "brt", 3)
+		
+		# calculate variable importance (like maxent, using decrease in AUC)
+		calculatePermutationVarImpt(brt.obj, brt.eval, "brt")
 		
 		rm(list=c("brt.obj", "brt.eval", "brt.combined.eval")) #clean up the memory
 	} else {
@@ -498,7 +687,7 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	write.csv(evaluation, file=paste(getwd(), "/biomod2.modelEvaluation.txt", sep=""))
 
 	# get the model predictions and observed values
-	predictions = getModelsPrediction(biomod.model); obs = attributes(getModelsInputData(biomod.model))[[3]];
+	predictions = getModelsPrediction(biomod.model); obs = getModelsInputData(biomod.model, "resp.var");
 
 	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
 	combined.eval = sapply(model.accuracy, function(x){
@@ -518,6 +707,7 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	# get and save the variable importance estimates
 	variableImpt = getModelsVarImport(biomod.model)
 	if (!is.na(variableImpt)) {
+	#EMG Note this will throw a warning message if variables (array) are returned	
 		write.csv(variableImpt, file=paste(getwd(), "/variableImportance.txt", sep=""))
 	} else {
 		message("VarImport argument not specified during model creation!")
