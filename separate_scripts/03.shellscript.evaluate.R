@@ -14,13 +14,17 @@ for (sp in species.names) { # cycle through each of the species
 
 	# set the species arg
 	species.arg = sp	
+	
 	# set the species specific working directory argument //directory should already be created
 	sp.wd.arg = paste(wd, "/", sp, sep=""); setwd(sp.wd.arg) 
 
 	for (model in model.algorithms) { # cycle through each model algorithm
-	
+
+		# get output directory
+		outdir = paste(sp.wd.arg, "/output_", model, sep='')
+			
 		# create the shell file
-		shell.file.name = paste(wd, "/", sp, "/03.", model, ".evaluate.", sp, ".sh", sep="")
+		shell.file.name = paste(outdir, "/03.", model, ".evaluate.", sp, ".sh", sep="")
 
 		shell.file = file(shell.file.name, "w")
 			cat('#!/bin/bash\n', file=shell.file)
@@ -31,9 +35,9 @@ for (sp in species.names) { # cycle through each of the species
 			cat('module load R\n', file=shell.file) # need for R
 			
 			# this job calls the 03.init.args.evaluate.R file using arguments defined above to set the parameters for the models
-			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/03.init.args.evaluate.R ", wd, "/03.init.args.evaluate.", sp, ".Rout \n", sep="", file=shell.file)
+			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/03.init.args.evaluate.R ", outdir, "/03.init.args.evaluate.", sp, ".Rout \n", sep="", file=shell.file)
 			# this job calls the 03.evaluate.R file to run the models
-			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/03.", model, ".evaluate.R ", wd, "/03.", model, ".evaluate.", sp, ".Rout \n", sep="", file=shell.file)
+			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/03.", model, ".evaluate.R ", outdir, "/03.", model, ".evaluate.", sp, ".Rout \n", sep="", file=shell.file)
 		close(shell.file)
 
 		# submit job

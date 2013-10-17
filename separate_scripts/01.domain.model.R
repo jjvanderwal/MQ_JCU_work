@@ -66,7 +66,7 @@ if (model.domain) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("domain not run because categorical data cannot be used")
 	} else {
-		outdir = paste(wd,'/output_domain/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		outdir = paste(wd,'/output_domain',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 		dm = tryCatch(domain(x=occur[,enviro.data.names]), error = err.null) #run domain with matrix of enviro data
 		if (!is.null(dm)) {	
 			save(dm,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

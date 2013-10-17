@@ -17,7 +17,7 @@ if(length(args)==0){
 load(paste(wd, "/01.init.args.model.", species, ".RData", sep=""))
 
 ###check if libraries are installed, install if necessary and then load them
-necessary=c("dismo","SDMTools","gbm","gstat","deldir", "biomod2") #list the libraries needed
+necessary=c("dismo","SDMTools") #list the libraries needed
 installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
@@ -66,7 +66,7 @@ if (model.bioclim) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("bioclim not run because categorical data cannot be used")
 	} else {
-		outdir = paste(wd,'/output_bioclim/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		outdir = paste(wd,'/output_bioclim',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 		bc = tryCatch(bioclim(x=occur[,enviro.data.names]), error = err.null) #run bioclim with matrix of enviro data
 		if (!is.null(bc)) {		
 			save(bc,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

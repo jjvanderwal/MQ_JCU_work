@@ -64,7 +64,7 @@ err.null <- function (e) return(NULL)
 # r radius of the earth; only relevant for longitude/latitude data; default is 6378137 m
 
 if (model.circles) {
-	outdir = paste(wd,'/output_circles/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_circles',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	cc = tryCatch(circles(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run circles 
 	if (!is.null(cc)) {	
 		save(cc,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

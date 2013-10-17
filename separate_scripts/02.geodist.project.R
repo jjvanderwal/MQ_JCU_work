@@ -75,7 +75,7 @@ checkModelLayers = function(model.obj) {
 # function to save projection output raster
 saveModelProjection = function(out.model, model.name) {
 	model.dir = paste(wd, "/output_", model.name, sep="")
-	writeRaster(out.model, paste(model.dir, es.name, sep="/"), format="GTiff", overwrite=TRUE)
+	writeRaster(out.model, paste(model.dir, es.name, sep="/"), format="GTiff", overwrite=TRUE, options=c("COMPRESS=LZW"))
 }
 
 ###project the models and save raster files

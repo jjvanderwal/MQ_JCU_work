@@ -18,6 +18,9 @@ species <- c("ABT")	#define the species of interest
 }
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
+# define path to helper function my.Evaluate.models() for combined evaluation output
+function.path = "/home/jc140298/ibccvl"
+
 ### define the models to be used for evaluation
 evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 
 evaluate.domain = TRUE #boolean to evaluate DOMAIN algorithm -- envirodata should have same number of data layers as model creation

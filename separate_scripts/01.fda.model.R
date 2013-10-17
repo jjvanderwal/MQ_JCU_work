@@ -14,7 +14,7 @@ if(length(args)==0){
 }
 
 # load arguments file
-load(paste(wd, "01.init.args.model.", species, ".RData", sep=""))
+load(paste(wd, "/01.init.args.model.", species, ".RData", sep=""))
 
 ###check if libraries are installed, install if necessary and then load them
 necessary=c("SDMTools","biomod2") #list the libraries needed
@@ -25,8 +25,8 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 ###read in the necessary observation, background and environmental data
 #setwd(wd) #set the working directory
 populate.data = FALSE #variable to define if there is a need to generate occur & background environmental info
-if (file.exists(paste(wd, "occur.RData", sep="")) && file.exists(paste(wd, "bkgd.RData", sep=""))) {
-	load(paste(wd, "occur.RData", sep="")); load(paste(wd, "bkgd.RData", sep="")); #if files already exist, load in the data
+if (file.exists(paste(wd, "/occur.RData", sep="")) && file.exists(paste(wd, "/bkgd.RData", sep=""))) {
+	load(paste(wd, "/occur.RData", sep="")); load(paste(wd, "/bkgd.RData", sep="")); #if files already exist, load in the data
 	if (!all(colnames(occur)==c('lon','lat',enviro.data.names))) { populate.data=TRUE } #not the right data, we need to repopulate it
 } else { populate.data=TRUE } # data does not exist, we need to generate it
 if (populate.data) {
@@ -37,7 +37,7 @@ if (populate.data) {
 		occur[,enviro.data.names[ii]] = extract.data(cbind(occur$lon,occur$lat),tasc) #extract envirodata for observations
 		bkgd[,enviro.data.names[ii]] = extract.data(cbind(bkgd$lon,bkgd$lat),tasc) #extract envirodata for background data
 	}
-	save(occur,file=paste(wd, "occur.RData", sep="")); save(bkgd,file=paste(wd, "bkgd.RData", sep="")) #write out the raw data for analysis
+	save(occur,file=paste(wd, "/occur.RData", sep="")); save(bkgd,file=paste(wd, "/bkgd.RData", sep="")) #write out the raw data for analysis
 }
 
 ## Needed for tryCatch'ing:
@@ -113,7 +113,7 @@ formatBiomodData = function() {
 #	Other possibilities are mars and bruto. For Penalized Discriminant analysis gen.ridge is appropriate.
 
 if (model.fda) {
-	outdir = paste(wd,'output_fda/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_fda',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	setwd(outdir) # set the working directory (where model results will be stored)
 	myBiomodData = formatBiomodData() # 1. Format the data
 	myBiomodOptions <- BIOMOD_ModelingOptions(FDA = fda.BiomodOptions) # 2. Define the model options
@@ -124,6 +124,6 @@ if (model.fda) {
 		rescal.all.models = biomod.rescal.all.models, do.full.models = biomod.do.full.models, 
 		modeling.id = biomod.modeling.id)
 	if (!is.null(myBiomodModelOut.fda)) {		
-			save(myBiomodModelOut.fda, file=paste(outdir,"model.object.RData",sep='')) #save out the model object
+			save(myBiomodModelOut.fda, file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
 	}
 }

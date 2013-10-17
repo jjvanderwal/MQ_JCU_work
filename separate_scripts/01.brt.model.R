@@ -91,7 +91,7 @@ err.null <- function (e) return(NULL)
 #	to be kept
 
 if (model.brt) {
-	outdir = paste(wd,'/output_brt',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_brt',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
 	brt = tryCatch(gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
 		gbm.y=which(names(brt.data)=='pa'), 

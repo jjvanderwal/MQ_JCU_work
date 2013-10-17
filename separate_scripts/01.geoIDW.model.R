@@ -61,7 +61,7 @@ err.null <- function (e) return(NULL)
 # ... none implemented
 
 if (model.geoIDW) {
-	outdir = paste(wd,'/output_geoIDW/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_geoIDW',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	gidw = tryCatch(geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
 	if (!is.null(gidw)) {	
 		save(gidw,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

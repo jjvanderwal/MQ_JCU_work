@@ -18,7 +18,7 @@ if(length(args)==0){
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".RData", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
-necessary=c("dismo","SDMTools") #list the libraries needed
+necessary=c("dismo","SDMTools", "rJava") #list the libraries needed
 installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries

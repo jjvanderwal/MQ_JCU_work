@@ -146,60 +146,55 @@ err.null <- function (e) return(NULL)
 # nodata -- integer -- -9999 -- Value to be interpreted as nodata values in SWD sample data
 
 if (model.maxent) {
-	outdir = paste(wd,'/output_maxent',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	write.csv(data.frame(species=species,occur),paste(outdir,"/occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
-	write.csv(data.frame(species="bkgd",bkgd),paste(outdir,"/bkgd.csv",sep=''),row.names=FALSE)### create bkgd.csv for maxent
-	###not user modified section
-	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
-	tstr = paste(tstr,'environmentallayers=',outdir,'/bkgd.csv ',sep='')
-	tstr = paste(tstr,'samplesfile=',outdir,'/occur.csv ',sep='')
-	tstr = paste(tstr,'outputdirectory=',outdir, " ", sep='')
-	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')
-	tstr = paste(tstr,'askoverwrite=FALSE skipifexists=FALSE prefixes=TRUE verbose=FALSE ',sep='')
-	tstr = paste(tstr,'responsecurves=TRUE pictures=TRUE jackknife=TRUE writeclampgrid=TRUE ',sep='')
-	tstr = paste(tstr,'writemess=TRUE writebackgroundpredictions=TRUE writeplotdata=TRUE outputgrids=TRUE ',sep='')
-	tstr = paste(tstr,'plots=TRUE appendtoresultsfile=FALSE threads=1 adjustsampleradius=0 ',sep='')
-	tstr = paste(tstr,'logfile=maxent.log cache=TRUE allowpartialdata=FALSE outputfiletype="asc" ',sep='')
-	tstr = paste(tstr,'perspeciesresults=FALSE responsecurvesexponent=FALSE    ',sep='')
-	if (any(enviro.data.type!='continuous')){
-		catvals = which(enviro.data.type!='continuous')
-		for (ii in catvals) {
-			tstr = paste(tstr,'togglelayertype=',enviro.data.names[ii],' ',sep='') #toggle the layer type
-		}
+	outdir = paste(wd,'/output_maxent',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
+	# create RasterStack containing grids with predictor variables used to extract values from for the point locations
+	predictors = stack(enviro.data)
+	me = tryCatch(maxent(x=predictors, p=occur[,c("lon","lat")], a=bkgd[,c("lon","lat")], 
+		factors=enviro.data.names[which(enviro.data.type == "categorical")], 
+		args=c("autorun=TRUE", "visible=FALSE", "warnings=FALSE", "tooltips=FALSE", "askoverwrite=FALSE", "skipifexists=FALSE",
+		"prefixes=TRUE", "verbose=FALSE", "responsecurves=TRUE", "pictures=TRUE", "jackknife=TRUE", "writeclampgrid=TRUE",
+		"writemess=TRUE", "writebackgroundpredictions=TRUE", "writeplotdata=TRUE", "outputgrids=TRUE", "plots=TRUE",
+		"appendtoresultsfile=FALSE", "threads=1", "adjustsampleradius=0", "logfile=\"maxent.log\"", "cache=TRUE", 
+		"allowpartialdata=FALSE", "perspeciesresults=FALSE", "responsecurvesexponent=FALSE",
+#, "outputfiletype=\"asc\""		
+		### based on user modified
+#		paste('outputformat=',outputformat,sep=''),
+		paste('randomseed=',randomseed,sep=''),
+		paste('logscale=',logscale,sep=''),
+		paste('removeduplicates=',removeduplicates,sep=''),
+		paste('randomtestpoints=',randomtestpoints,sep=''),
+		paste('betamultiplier=',betamultiplier,sep=''),
+		paste('maximumbackground=',maximumbackground,sep=''),
+		paste('biasfile=',biasfile,sep=''),
+		paste('testsamplesfile=',testsamplesfile,sep=''),
+		paste('replicates=',replicates,sep=''),
+		paste('replicatetype=',replicatetype,sep=''),
+		paste('linear=',linear,sep=''),
+		paste('quadratic=',quadratic,sep=''),
+		paste('product=',product,sep=''),
+		paste('threshold=',threshold,sep=''),
+		paste('hinge=',hinge,sep=''),
+		paste('addsamplestobackground=',addsamplestobackground,sep=''),
+		paste('addallsamplestobackground=',addallsamplestobackground,sep=''),
+		paste('fadebyclamping=',fadebyclamping,sep=''),
+		paste('extrapolate=',extrapolate,sep=''),
+		paste('autofeature=',autofeature,sep=''),
+		paste('doclamp=',doclamp,sep=''),
+		paste('maximumiterations=',maximumiterations,sep=''),
+		paste('convergencethreshold=',convergencethreshold,sep=''),
+		paste('lq2lqptthreshold=',lq2lqptthreshold,sep=''),
+		paste('l2lqthreshold=',l2lqthreshold,sep=''),
+		paste('hingethreshold=',hingethreshold,sep=''),
+		paste('beta_threshold=',beta_threshold,sep=''),
+		paste('beta_categorical=',beta_categorical,sep=''),
+		paste('beta_lqp=',beta_lqp,sep=''),
+		paste('beta_hinge=',beta_hinge,sep=''),
+		paste('defaultprevalence=',defaultprevalence,sep=''),
+		paste('nodata=',nodata,sep=''))))
+	if (!is.null(me)) {	
+		save(me,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
+		rm(me); #clean up the memory
+	} else {
+		write(paste("FAIL!", species, "Cannot create maxent model object", sep=": "), stdout())
 	}
-	### based on user modified
-	tstr = paste(tstr,'outputformat=',outputformat,' ',sep='')
-	tstr = paste(tstr,'randomseed=',randomseed,' ',sep='')
-	tstr = paste(tstr,'logscale=',logscale,' ',sep='')
-	tstr = paste(tstr,'removeduplicates=',removeduplicates,' ',sep='')
-	tstr = paste(tstr,'randomtestpoints=',randomtestpoints,' ',sep='')
-	tstr = paste(tstr,'betamultiplier=',betamultiplier,' ',sep='')
-	tstr = paste(tstr,'maximumbackground=',maximumbackground,' ',sep='')
-	tstr = paste(tstr,'biasfile=',biasfile,' ',sep='')
-	tstr = paste(tstr,'testsamplesfile=',testsamplesfile,' ',sep='')
-	tstr = paste(tstr,'replicates=',replicates,' ',sep='')
-	tstr = paste(tstr,'replicatetype=',replicatetype,' ',sep='')
-	tstr = paste(tstr,'linear=',linear,' ',sep='')
-	tstr = paste(tstr,'quadratic=',quadratic,' ',sep='')
-	tstr = paste(tstr,'product=',product,' ',sep='')
-	tstr = paste(tstr,'threshold=',threshold,' ',sep='')
-	tstr = paste(tstr,'hinge=',hinge,' ',sep='')
-	tstr = paste(tstr,'addsamplestobackground=',addsamplestobackground,' ',sep='')
-	tstr = paste(tstr,'addallsamplestobackground=',addallsamplestobackground,' ',sep='')
-	tstr = paste(tstr,'fadebyclamping=',fadebyclamping,' ',sep='')
-	tstr = paste(tstr,'extrapolate=',extrapolate,' ',sep='')
-	tstr = paste(tstr,'autofeature=',autofeature,' ',sep='')
-	tstr = paste(tstr,'doclamp=',doclamp,' ',sep='')
-	tstr = paste(tstr,'maximumiterations=',maximumiterations,' ',sep='')
-	tstr = paste(tstr,'convergencethreshold=',convergencethreshold,' ',sep='')
-	tstr = paste(tstr,'lq2lqptthreshold=',lq2lqptthreshold,' ',sep='')
-	tstr = paste(tstr,'l2lqthreshold=',l2lqthreshold,' ',sep='')
-	tstr = paste(tstr,'hingethreshold=',hingethreshold,' ',sep='')
-	tstr = paste(tstr,'beta_threshold=',beta_threshold,' ',sep='')
-	tstr = paste(tstr,'beta_categorical=',beta_categorical,' ',sep='')
-	tstr = paste(tstr,'beta_lqp=',beta_lqp,' ',sep='')
-	tstr = paste(tstr,'beta_hinge=',beta_hinge,' ',sep='')
-	tstr = paste(tstr,'defaultprevalence=',defaultprevalence,' ',sep='')
-	tstr = paste(tstr,'nodata=',nodata,' ',sep='')
-	system(tstr)	
 }

@@ -60,7 +60,7 @@ err.null <- function (e) return(NULL)
 # a absence points; must be of the same class as 'p'
 
 if (model.voronoiHull) {
-	outdir = paste(wd,'/output_voronoiHull',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_voronoiHull',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	vh = tryCatch(voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
 	if (!is.null(vh)) {	
 		save(vh,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

@@ -62,7 +62,7 @@ err.null <- function (e) return(NULL)
 #	the first polygon has 1 part, the second has 2 parts and x has x parts
 
 if (model.convHull) {
-	outdir = paste(wd,'/output_convHull/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_convHull',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	ch = tryCatch(convHull(p=occur[,c('lon','lat')]), error = err.null) #run convex hull 
 	if (!is.null(ch)) {		
 		save(ch,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

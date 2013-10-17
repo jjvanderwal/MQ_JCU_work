@@ -64,7 +64,7 @@ err.null <- function (e) return(NULL)
 #	argument 'a' should be of the same class as argument 'p'
 
 if (model.geodist) {
-	outdir = paste(wd,'/output_geodist/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+	outdir = paste(wd,'/output_geodist',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	gd = tryCatch(geoDist(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run geodist 
 	if (!is.null(gd)) {	
 		save(gd,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

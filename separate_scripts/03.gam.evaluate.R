@@ -30,7 +30,7 @@ if (file.exists(paste(wd, "/occur.RData", sep="")) && file.exists(paste(wd, "/bk
 }
 
 # source my modified version of biomod2's Evaluate.models.R for consistent model accuracy statistics
-source("/home/jc140298/bccvl/my.Evaluate.models.R")
+source(paste(function.path, "/my.Evaluate.models.R", sep=""))
 # model accuracy statistics - combine stats from dismo and biomod2 for consistent output
 model.accuracy = c(dismo.eval.method, biomod.models.eval.meth)
 

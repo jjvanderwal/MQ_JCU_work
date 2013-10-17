@@ -13,20 +13,24 @@ scenarios = list.files("/home/jc165798/working/BCCVL/envirodata", full.names=TRU
 # define working directory
 wd = "/home/jc140298/ibccvl"
 
-for (sp in species.names) { # cycle through each of the species
+for (sp in species.names[1]) { # cycle through each of the species
 
 	# set the species arg
 	species.arg = sp
+	
 	# set the species specific working directory argument //directory should already be created
 	sp.wd.arg = paste(wd, "/", sp, sep=""); setwd(sp.wd.arg)
 	
-	for (model in model.algorithms) { # cycle through each model algorithm
+	for (model in model.algorithms[1]) { # cycle through each model algorithm
 	
-		for (es in scenarios) { # cycle through each of the climate scenarios
+		for (es in scenarios[1]) { # cycle through each of the climate scenarios
 			es.name = basename(es)
 
+			# get output directory
+			outdir = paste(sp.wd.arg, "/output_", model, sep='')
+		
 			# create the shell file
-			shell.file.name = paste(wd, "/", sp, "/02.", model, ".project.", sp, ".", es.name, ".sh", sep="")
+			shell.file.name = paste(outdir, "/02.", model, ".project.", sp, ".", es.name, ".sh", sep="")
 		
 			shell.file = file(shell.file.name, "w")
 				cat('#!/bin/bash\n', file=shell.file)
@@ -36,9 +40,9 @@ for (sp in species.names) { # cycle through each of the species
 				cat('module load java\n', file=shell.file) # need for maxent
 				cat('module load R\n', file=shell.file) # need for R
 				# this job calls the 02.init.args.project.R file using arguments defined above to set the parameters for the models
-				cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\"' ", wd, "/02.init.args.project.R ", wd, "/02.init.args.project.", sp, ".", es.name, ".Rout \n", sep="", file=shell.file)
+				cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\"' ", wd, "/02.init.args.project.R ", outdir, "/02.init.args.project.", sp, ".", es.name, ".Rout \n", sep="", file=shell.file)
 				# this job calls the 02.project.R file to run the models
-				cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\"' ", wd, "/02.", model, ".project.R ", wd, "/02.", model, ".project.", sp, ".", es.name, ".Rout \n", sep="", file=shell.file)
+				cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\"' ", wd, "/02.", model, ".project.R ", outdir, "/02.", model, ".project.", sp, ".", es.name, ".Rout \n", sep="", file=shell.file)
 			close(shell.file)
 
 			# submit job

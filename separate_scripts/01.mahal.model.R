@@ -66,7 +66,7 @@ if (model.mahal) {
 	if (!all(enviro.data.type=="continuous")) {
 		warning("Mahal not run because categorical data cannot be used")
 	} else {
-		outdir = paste(wd,'/output_mahal/',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
+		outdir = paste(wd,'/output_mahal',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 		mm = tryCatch(mahal(x=occur[,enviro.data.names]), error = err.null) #run mahal with matrix of enviro data
 		if (!is.null(mm)) {	
 			save(mm,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object

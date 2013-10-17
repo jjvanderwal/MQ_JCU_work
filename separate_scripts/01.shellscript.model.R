@@ -23,8 +23,12 @@ for (sp in species.names) { #cycle through each of the species
 	sp.wd.arg = paste(wd, "/", sp, sep=""); dir.create(sp.wd.arg);	setwd(sp.wd.arg) 
 
 	for (model in model.algorithms) { # cycle through each model algorithm
+	
+		# create output directory
+		outdir = paste(sp.wd.arg, "/output_", model, sep=''); dir.create(outdir,recursive=TRUE);
+		
 		# create the shell file
-		shell.file.name = paste(wd, "/", sp, "/01.", model, ".model.", sp, ".sh", sep="")
+		shell.file.name = paste(outdir, "/01.", model, ".model.", sp, ".sh", sep="")
 		
 		shell.file = file(shell.file.name, "w")
 			cat('#!/bin/bash\n', file=shell.file)
@@ -34,9 +38,9 @@ for (sp in species.names) { #cycle through each of the species
 			cat('module load java\n', file=shell.file) # need for maxent
 			cat('module load R\n', file=shell.file) # need for R
 			# this job calls the 01.init.args.model.R file using arguments defined above to set the parameters for the models
-			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" occur.data=\"", occur.data.arg, "\" bkgd.data=\"", bkgd.data.arg, "\"' ", wd, "/01.init.args.model.R ", wd, "/01.init.args.model.", sp, ".Rout \n", sep="", file=shell.file)
+			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" occur.data=\"", occur.data.arg, "\" bkgd.data=\"", bkgd.data.arg, "\"' ", wd, "/01.init.args.model.R ", outdir, "/01.init.args.model.", sp, ".Rout \n", sep="", file=shell.file)
 			# this job calls the 01.model.R file to run the models
-			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/01.", model, ".model.R ", wd, "/01.", model, ".model.", sp, ".Rout \n", sep="", file=shell.file)
+			cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", wd, "/01.", model, ".model.R ", outdir, "/01.", model, ".model.", sp, ".Rout \n", sep="", file=shell.file)
 		close(shell.file)
 
 		# submit job

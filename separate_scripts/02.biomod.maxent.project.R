@@ -18,7 +18,7 @@ if(length(args)==0){
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".RData", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
-necessary=c("biomod2","SDMTools") #list the libraries needed
+necessary=c("biomod2","SDMTools", "rJava") #list the libraries needed
 installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
@@ -72,11 +72,8 @@ checkModelLayers = function(model.obj) {
 	}
 }
 
-# function to save projection output raster
-saveModelProjection = function(out.model, model.name) {
-	model.dir = paste(wd, "/output_", model.name, sep="")
-	writeRaster(out.model, paste(model.dir, es.name, sep="/"), format="GTiff", overwrite=TRUE)
-}
+# source my modified version of biomod2's BIOMOD_Projection.R for lzw compressed gtiff output
+source(paste(function.path, "/my.BIOMOD_Projection.R", sep=""))
 
 ###project the models and save raster files
 ############### BIOMOD2 Models ###############
@@ -125,7 +122,7 @@ if (project.biomod.maxent) {
 		predictors = checkModelLayers(biomod.maxent.obj)
 		biomod.maxent.proj = BIOMOD_Projection(modeling.output=biomod.maxent.obj, new.env=predictors, proj.name=es.name, 
 			xy.new.env = biomod.xy.new.env,	selected.models = biomod.selected.models, binary.meth = biomod.binary.meth, 
-			filtered.meth = biomod.filtered.meth, compress = biomod.compress, 
+			filtered.meth = biomod.filtered.meth, #compress = biomod.compress, 
 			build.clamping.mask = biomod.build.clamping.mask, silent = opt.biomod.silent, do.stack = opt.biomod.do.stack, 
 			keep.in.memory = opt.biomod.keep.in.memory,	output.format = opt.biomod.output.format)
 		# output is saved as part of the projection, format specified in arg 'opt.biomod.output.format'

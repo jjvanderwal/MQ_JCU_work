@@ -94,7 +94,7 @@ if (model.maxent) {
 	fadebyclamping=FALSE
 	extrapolate=TRUE
 	autofeature=TRUE
-	doclamp=TRUE
+	doclamp=FALSE
 	maximumiterations=500
 	convergencethreshold=1.00E-05
 	lq2lqptthreshold=80
@@ -269,7 +269,7 @@ model.rf = TRUE #boolean to run random forest algorithm
 	)
 }
 
-model.biomod.maxent = TRUE #boolean to run {biomod} maxent algorithm
+model.biomod.maxent = FALSE #boolean to run {biomod} maxent algorithm
 if (model.biomod.maxent) {
 	biomod.maxent.BiomodOptions <- list(
 		path_to_maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar", #character, the link to maxent.jar file (the working directory by default)
