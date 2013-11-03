@@ -33,6 +33,9 @@ enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
 enviro.data.type = c("continuous","continuous","continuous","continuous",
 "continuous","continuous","continuous","continuous") #type in terms of continuous or categorical
 
+# define path to helper functions
+function.path = "/home/jc140298/ibccvl"
+
 ### define the models to be used
 model.bioclim = TRUE #boolean to run BIOCLIM algorithm -- all envirodata must be continuous
 model.domain = TRUE #boolean to run DOMAIN algorithm -- all envirodata must be continuous
