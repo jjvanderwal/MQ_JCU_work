@@ -20,21 +20,20 @@ bkgd.data = "/home/jc140298/ibccvl/ABT/bkgd.csv" #define the the lon/lat of the 
 }
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
-enviro.data = c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_05.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_06.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_12.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_15.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_16.asc",
-"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_17.asc") #define the enviro data to use -- assumed location of data files in ascii grid format
+#enviro.data = c("/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_01.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_04.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_05.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_06.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_12.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_15.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_16.asc",
+#"/home/jc165798/working/BCCVL/envirodata/climate_1990/bioclim_17.asc") #define the enviro data to use -- assumed location of data files in ascii grid format
+# EMG occurrence and background files are already SWD's
 enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
 "bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
 enviro.data.type = c("continuous","continuous","continuous","continuous",
 "continuous","continuous","continuous","continuous") #type in terms of continuous or categorical
 
-# define path to helper functions
-function.path = "/home/jc140298/ibccvl"
 
 ### define the models to be used
 model.bioclim = TRUE #boolean to run BIOCLIM algorithm -- all envirodata must be continuous
