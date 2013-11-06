@@ -11,16 +11,16 @@ scales = c("5km", "1km", "250m")
 
 # create a list of model algorithms
 model.algorithms = c("bioclim", "domain", "mahal", "geodist", "convHull", "circles", "geoIDW", "voronoiHull", "brt", "maxent",
-	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf", "biomod.maxent")
+	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf") #, "biomod.maxent")
+	
+script.dir = "/home/jc140298/MQ_JCU_work/separate_scripts"
 
-script.dir = "https://github.com/jjvanderwal/MQ_JCU_work/blob/master/separate_scripts"
+for (taxon in taxa[1]) {
 
-for (taxon in taxa) {
+	taxon.dir = paste(wd, "/", taxon, sep="")
 
-	taxon.dir = paste(wd, "/", taxon, "_emg", sep="")
-
-	for (i in 1:length(scales[1])) {
-	#EMG Only 5km is currently available (in current.76to05)
+	for (i in 1:length(scales[1:2])) {
+	#EMG Only 5km, 1km is currently available (in current.76to05)
 
 		# set the location of the background data
 		bkgd.data.arg = paste(taxon.dir, "/", scales[i], "_bkgd.csv", sep="")
@@ -28,7 +28,7 @@ for (taxon in taxa) {
 		# get a list of species directories
 		species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
 
-		for (sp in species.names[1:2]) { #cycle through each of the species
+		for (sp in species.names[1]) { #cycle through each of the species
 		
 			# create the species specific working directory argument
 			sp.wd.arg = paste(taxon.dir, "/models/", sp, "/", scales[i], sep=""); setwd(sp.wd.arg) 
@@ -44,7 +44,7 @@ for (taxon in taxa) {
 				outdir = paste(sp.wd.arg, "/output_", model, sep=''); dir.create(outdir,recursive=TRUE);
 		
 				# create the shell file
-				shell.file.name = paste(outdir, "/01.", model, ".model.", sp, ".sh", sep="")
+				shell.file.name = paste(sp.wd.arg, "/01.", model, ".model.", sp, ".sh", sep="")
 			
 				shell.file = file(shell.file.name, "w")
 					cat('#!/bin/bash\n', file=shell.file)
@@ -54,9 +54,9 @@ for (taxon in taxa) {
 					cat('module load java\n', file=shell.file) # need for maxent
 					cat('module load R\n', file=shell.file) # need for R
 					# this job calls the 01.init.args.model.R file using arguments defined above to set the parameters for the models
-					cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" occur.data=\"", occur.data.arg, "\" bkgd.data=\"", bkgd.data.arg, "\"' ", script.dir, "/01.init.args.model.R ", outdir, "/01.init.args.model.", sp, ".Rout \n", sep="", file=shell.file)
+					cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" occur.data=\"", occur.data.arg, "\" bkgd.data=\"", bkgd.data.arg, "\"' ", script.dir, "/01.init.args.model.R ", sp.wd.arg, "/01.init.args.model.", sp, ".Rout \n", sep="", file=shell.file)
 					# this job calls the 01.model.R file to run the models
-					cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", script.dir, "/01.", model, ".model.R ", outdir, "/01.", model, ".model.", sp, ".Rout \n", sep="", file=shell.file)
+					cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\"' ", script.dir, "/01.", model, ".model.R ", sp.wd.arg, "/01.", model, ".model.", sp, ".Rout \n", sep="", file=shell.file)
 				close(shell.file)
 
 				# submit job

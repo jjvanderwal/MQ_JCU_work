@@ -23,8 +23,8 @@ if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], d
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
 ###read in the necessary observation and background data
-occur = read.csv(occur.data) #read in the observation data lon/lat
-bkgd = read.csv(bkgd.data) #read in the background data lon/lat
+#occur = read.csv(occur.data) #read in the observation data lon/lat
+#bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
 ## Needed for tryCatch'ing:
 err.null <- function (e) return(NULL)
@@ -132,13 +132,14 @@ err.null <- function (e) return(NULL)
 # nodata -- integer -- -9999 -- Value to be interpreted as nodata values in SWD sample data
 
 if (model.maxent) {
-	outdir = paste(wd,'/output_maxent',sep=''); dir.create(outdir,recursive=TRUE); #create the output directory
-	write.csv(data.frame(species=species,occur),paste(outdir,"/occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
-	write.csv(data.frame(species="bkgd",bkgd),paste(outdir,"/bkgd.csv",sep=''),row.names=FALSE)### create bkgd.csv for maxent
+	outdir = paste(wd,'/output_maxent',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
+#	write.csv(data.frame(species=species,occur),paste(outdir,"/occur.csv",sep=''),row.names=FALSE)### create occur.csv for maxent
+#	write.csv(data.frame(species="bkgd",bkgd),paste(outdir,"/bkgd.csv",sep=''),row.names=FALSE)### create bkgd.csv for maxent
+# EMG already have these specified above
 	###not user modified section
 	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
-	tstr = paste(tstr,'environmentallayers=',outdir,'/bkgd.csv ',sep='')
-	tstr = paste(tstr,'samplesfile=',outdir,'/occur.csv ',sep='')
+	tstr = paste(tstr,'environmentallayers=', bkgd.data, " ",sep='')
+	tstr = paste(tstr,'samplesfile=', occur.data, " ",sep='')
 	tstr = paste(tstr,'outputdirectory=',outdir, " ", sep='')
 	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')
 	tstr = paste(tstr,'askoverwrite=FALSE skipifexists=FALSE prefixes=TRUE verbose=FALSE ',sep='')

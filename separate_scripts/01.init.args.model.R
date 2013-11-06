@@ -49,15 +49,15 @@ model.voronoiHull = TRUE #boolean to run Voronoi Hulls algorithm -- only require
 model.brt = TRUE #boolean to run Boosted regression tree algorithm
 if (model.brt) { #additional parameters to set
 	brt.fold.vector = NULL #a fold vector to be read in for cross validation with offsets
-	brt.tree.complexity = 7 #sets the complexity of individual trees
-	brt.learning.rate = 0.001 #sets the weight applied to individual trees
-	brt.bag.fraction = 0.5 #sets the proportion of observations used in selecting variables
+	brt.tree.complexity = 1 #sets the complexity of individual trees
+	brt.learning.rate = 0.01 #sets the weight applied to individual trees
+	brt.bag.fraction = 0.75 #sets the proportion of observations used in selecting variables
 	brt.site.weights = NULL #allows varying weighting for sites; rep(1, nrow(data))
 	brt.var.monotone = NULL #restricts responses to individual predictors to monotone; rep(0, length(enviro.data))
-	brt.n.folds = 5 #number of folds
+	brt.n.folds = 10 #number of folds
 	brt.prev.stratify = TRUE #prevalence stratify the folds - only for presence/absence data
 	brt.family = "bernoulli" #family - bernoulli (=binomial), poisson, laplace or gaussian
-	brt.n.trees = 2000 #number of initial trees to fit
+	brt.n.trees = 50 #number of initial trees to fit
 	brt.step.size = brt.n.trees #numbers of trees to add at each cycle
 	brt.max.trees = 10000 #max number of trees to fit before stopping
 	brt.tolerance.method = "auto" #method to use in deciding to stop - "fixed" or "auto"
@@ -65,7 +65,7 @@ if (model.brt) { #additional parameters to set
 	brt.keep.data = FALSE #Logical. keep raw data in final model
 	brt.plot.main = FALSE #Logical. plot hold-out deviance curve
 	brt.plot.folds = FALSE #Logical. plot the individual folds as well
-	brt.verbose = FALSE #Logical. control amount of screen reporting
+	brt.verbose = TRUE #Logical. control amount of screen reporting
 	brt.silent = FALSE #Logical. to allow running with no output for simplifying model)
 	brt.keep.fold.models = FALSE  #Logical. keep the fold models from cross valiation
 	brt.keep.fold.vector = FALSE #Logical. allows the vector defining fold membership to be kept

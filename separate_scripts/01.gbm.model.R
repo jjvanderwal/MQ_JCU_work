@@ -61,7 +61,8 @@ err.null <- function (e) return(NULL)
 formatBiomodData = function() {
 	biomod.data = rbind(occur[,c("lon","lat")],bkgd[,c("lon","lat")])
 	biomod.data.pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd)))
-	myBiomodData <- BIOMOD_FormatingData(resp.var = biomod.data.pa, expl.var = stack(enviro.data),	
+	biomod.enviro.data = rbind(occur[,enviro.data.names],bkgd[,enviro.data.names])
+	myBiomodData <- BIOMOD_FormatingData(resp.var = biomod.data.pa, expl.var = biomod.enviro.data,	
 		resp.xy = biomod.data, resp.name = species)
 	return(myBiomodData)
 }
