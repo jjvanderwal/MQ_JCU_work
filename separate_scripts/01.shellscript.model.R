@@ -28,7 +28,7 @@ for (taxon in taxa[1]) {
 		# get a list of species directories
 		species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
 
-		for (sp in species.names[1]) { #cycle through each of the species
+		for (sp in species.names) { #cycle through each of the species
 		
 			# create the species specific working directory argument
 			sp.wd.arg = paste(taxon.dir, "/models/", sp, "/", scales[i], sep=""); setwd(sp.wd.arg) 

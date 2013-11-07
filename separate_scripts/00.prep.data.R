@@ -1,9 +1,10 @@
 # this script prepares the occurrence and background data at three spatial resolutions
 # A. creates taxon occurrence csv for each scale using original data files
-# B. creates taxon backgrund csv using newly created occurrence csv
-# C. creates species specific occurrence files at each scale
-# D. replace occurrence csv's with SWDs (associated climate data)
-# E. replace background csv's with SWDs (associated climate data)
+# B. creates taxon background csv using newly created occurrence csv
+# C. replace background csv's with SWDs (associated climate data)
+# D. creates species specific occurrence files at each scale
+# E. replace occurrence csv's with SWDs (associated climate data)
+
 
 # define data directory
 taxa.dir = "/rdsi/ccimpacts/SDM_assessment/mission_critical_data/DATA_from_refugia_project"
@@ -14,13 +15,16 @@ taxa = c("mammals", "birds", "reptiles", "amphibians")
 # define spatial scales
 scales = c("5km", "1km", "250m"); cellsizes = c(0.05, 0.01, 0.0025)
 
+#EMG Only 5km, 1km is currently available (in current.76to05)
+scales = scales[1:2]
+
 # define working dir
 wd = "/rdsi/ccimpacts/SDM_assessment"
 
 # decide which parts to run
-doPartA = FALSE
-doPartB = FALSE
-doPartC = FALSE
+doPartA = TRUE
+doPartB = TRUE
+doPartC = TRUE
 doPartD = TRUE
 doPartE = TRUE
 
@@ -77,8 +81,46 @@ if (doPartB) {
 	rm(list=c("taxon", "j", "rescaled.data", "temp.bkgd.data"))
 }
 
-# C. create sp specific occurrence csv's
+# C. replace bkgd csv's with SWD's
 if (doPartC) {
+	library(SDMTools)
+	enviro.data.dir = "/rdsi/ctbcc_data/Climate/CIAS/Australia" #define the enviro data to use
+	enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
+	"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
+
+	for (taxon in taxa[1]) {
+
+		# for each scale
+		for (m in 1:length(scales)) {
+			
+			# get all the environmental data in the folder
+			enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[m], "/bioclim_asc/current.76to05", sep=""), 
+				full.names=TRUE)
+			# pull out the layers we are interested in
+			enviro.data = enviro.data.all[which(gsub(".asc", "", basename(enviro.data.all)) %in% enviro.data.names)]
+
+			# get the rescaled bkgd csv
+			rescaled.bkgd.data = read.csv(paste(wd, "/", taxon, "/", scales[m], "_bkgd.csv", sep=""))
+
+			# create SWD
+			for (ii in 1:length(enviro.data)) { #cycle through each of the environmental datasets and append the data
+				basc = read.asc(enviro.data[ii]) #read in the envirodata
+				rescaled.bkgd.data[,enviro.data.names[ii]] = 
+					extract.data(cbind(rescaled.bkgd.data$lon,rescaled.bkgd.data$lat),basc) #extract envirodata for background data
+			} # end for enviro.data layers
+
+			# remove any rows with NA
+			rescaled.bkgd.data = na.omit(rescaled.bkgd.data)
+				
+			# replace bkgd.csv with SWD
+			write.csv(rescaled.bkgd.data, file=paste(wd, "/", taxon, "/", scales[m], "_bkgd.csv", sep=""), row.names=FALSE)
+		} # end for scales
+	}# end for taxa
+	rm(list=c("taxon", "m", "rescaled.bkgd.data", "basc"))
+}
+
+# D. create sp specific occurrence csv's
+if (doPartD) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
@@ -109,8 +151,8 @@ if (doPartC) {
 }
 
 
-# D. replace occur csv's with SWD's
-if (doPartD) {
+# E. replace occur csv's with SWD's
+if (doPartE) {
 	library(SDMTools)
 	enviro.data.dir = "/rdsi/ctbcc_data/Climate/CIAS/Australia" #define the enviro data to use
 	enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
@@ -119,8 +161,7 @@ if (doPartD) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
-		for (l in 1:length(scales[1:2])) {	
-		#EMG Only 5km, 1km is currently available (in current.76to05)
+		for (l in 1:length(scales)) {	
 			
 			# get all the environmental data in the folder
 			enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[l], "/bioclim_asc/current.76to05", sep=""), 
@@ -142,47 +183,13 @@ if (doPartD) {
 						extract.data(cbind(sp.occur$lon,sp.occur$lat),oasc) #extract envirodata for observations
 				} # end for enviro.data layers
 				
+				# remove any rows with NA
+				sp.occur = na.omit(sp.occur)
+				
 				# replace occur.csv with SWD
 				write.csv(sp.occur, file=paste(wd, "/", taxon, "/models/", sp, "/", scales[l], "/occur.csv", sep=""), row.names=FALSE)
 			} # end for species
 		} # end for scales
 	}# end for taxa
 	rm(list=c("taxon", "l", "sp.occur", "oasc"))
-}
-
-
-# E. replace bkgd csv's with SWD's
-if (doPartE) {
-	library(SDMTools)
-	enviro.data.dir = "/rdsi/ctbcc_data/Climate/CIAS/Australia" #define the enviro data to use
-	enviro.data.names = c("bioclim_01","bioclim_04","bioclim_05","bioclim_06",
-	"bioclim_12","bioclim_15","bioclim_16","bioclim_17") #define the names of the enviro data
-
-	for (taxon in taxa[1]) {
-
-		# for each scale
-		for (m in 1:length(scales[1:2])) {
-		#EMG Only 5km, 1km is currently available (in current.76to05)
-			
-			# get all the environmental data in the folder
-			enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[m], "/bioclim_asc/current.76to05", sep=""), 
-				full.names=TRUE)
-			# pull out the layers we are interested in
-			enviro.data = enviro.data.all[which(gsub(".asc", "", basename(enviro.data.all)) %in% enviro.data.names)]
-
-			# get the rescaled bkgd csv
-			rescaled.bkgd.data = read.csv(paste(wd, "/", taxon, "/", scales[m], "_bkgd.csv", sep=""))
-
-			# create SWD
-			for (ii in 1:length(enviro.data)) { #cycle through each of the environmental datasets and append the data
-				basc = read.asc(enviro.data[ii]) #read in the envirodata
-				rescaled.bkgd.data[,enviro.data.names[ii]] = 
-					extract.data(cbind(rescaled.bkgd.data$lon,rescaled.bkgd.data$lat),basc) #extract envirodata for background data
-			} # end for enviro.data layers
-			
-			# replace bkgd.csv with SWD
-			write.csv(rescaled.bkgd.data, file=paste(wd, "/", taxon, "/", scales[m], "_bkgd.csv", sep=""), row.names=FALSE)
-		} # end for scales
-	}# end for taxa
-	rm(list=c("taxon", "m", "rescaled.bkgd.data", "basc"))
 }
