@@ -1,5 +1,8 @@
 # create the shell script to set the arguments and run the models for each species
 
+# define location of R scripts
+script.dir = "/home/jc140298/MQ_JCU_work/separate_scripts"
+
 # define working dir
 wd = "/rdsi/ccimpacts/SDM_assessment"
 
@@ -12,9 +15,8 @@ scales = c("5km", "1km", "250m")
 # create a list of model algorithms
 model.algorithms = c("bioclim", "domain", "mahal", "geodist", "convHull", "circles", "geoIDW", "voronoiHull", "brt", "maxent",
 	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf") #, "biomod.maxent")
-	
-script.dir = "/home/jc140298/MQ_JCU_work/separate_scripts"
 
+# create the individual shell scripts
 for (taxon in taxa[1]) {
 
 	taxon.dir = paste(wd, "/", taxon, sep="")

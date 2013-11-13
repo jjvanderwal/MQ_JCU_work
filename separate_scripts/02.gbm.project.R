@@ -15,7 +15,10 @@ if(length(args)==0){
 }
 
 # load arguments file
-load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".RData", sep=""))
+load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
+
+# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
 necessary=c("biomod2","SDMTools","gbm") #list the libraries needed
@@ -29,48 +32,6 @@ if (length(cache.present) > 0) { # maxent.cache is present
 	enviro.data = enviro.data[-cache.present]
 }
 climate.scenario = stack(enviro.data)
-
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
-# function to get model object
-getModelObject = function(model.name) {
-	model.dir = paste(wd, "/output_", model.name, sep="")
-	model.obj = tryCatch(get(load(file=paste(model.dir, "/model.object.RData", sep=""))), error = err.null)	
-}
-
-# function to check that the environmental layers used to project the  model are the same as the ones used
-# 	to create the model object 
-checkModelLayers = function(model.obj) {
-
-	message("Checking environmental layers used for projection")
-	# get the names of the environmental layers from the original model
-	if (inherits(model.obj, "DistModel")) { # dismo package
-		model.layers = colnames(model.obj@presence)
-	} else if (inherits(model.obj, "gbm")) { # brt package
-		model.layers = summary(brt.obj)$var
-	} else if (inherits(model.obj, "BIOMOD.models.out")) { # biomod package
-		model.layers = model.obj@expl.var.names
-	}
-	
-	# get the names of the climate scenario's env layers
-	pred.layers = names(climate.scenario)
-	
-	# check if the env layers were in the original model
-    if(sum(!(pred.layers %in% model.layers)) > 0 ){
-		message("Dropping environmental layers not used in the original model creation...")
-		# create a new list of env predictors by dropping layers not in the original model
-		new.predictors = climate.scenario
-		for (pl in pred.layers) {
-			if (!(pl %in% model.layers)) {
-				new.predictors = dropLayer(new.predictors, pl)
-			}	
-		}
-		return(new.predictors)
-	} else {
-		return(climate.scenario)
-	}
-}
 
 # source my modified version of biomod2's BIOMOD_Projection.R for lzw compressed gtiff output
 source(paste(function.path, "/my.BIOMOD_Projection.R", sep=""))

@@ -208,7 +208,7 @@ calculatePermutationVarImpt = function(out.model, model.eval, model.name) {
 		# for each predictor variable 
 		for (v in 1:length(env.vars)) {
 					
-			# resample from that variables' values, keeping other variable values the same, and 
+			# resample from that variables' values, keeping other variable values the same 
 			sample.p[,v] = sample(x=sample.p[,v], replace=FALSE)
 			sample.a[,v] = sample(x=sample.a[,v], replace=FALSE)
 

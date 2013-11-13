@@ -22,13 +22,6 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-###read in the necessary observation and background data
-#occur = read.csv(occur.data) #read in the observation data lon/lat
-bkgd = read.csv(bkgd.data) #read in the background data lon/lat
-
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -136,7 +129,6 @@ if (model.maxent) {
 	###not user modified section
 	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
 	tstr = paste(tstr,'environmentallayers=', bkgd.data, " ",sep='') 
-	tstr = paste(tstr,'environmentallayers=',outdir,'/bkgd.csv ',sep='')
 	tstr = paste(tstr,'samplesfile=', occur.data, " ",sep='')
 	tstr = paste(tstr,'outputdirectory=',outdir, " ", sep='')
 	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')

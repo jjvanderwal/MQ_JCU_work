@@ -26,6 +26,12 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
+# remove the background records matching the occurrence records 
+# duplicates are removed by .voronoiHull() and cause problems if the function itself does it
+combined_occur_bkgd = rbind(occur, bkgd)
+combined_occur_bkgd = combined_occur_bkgd[-which(duplicated(combined_occur_bkgd[,c("lon","lat")])),]
+bkgd = combined_occur_bkgd[combined_occur_bkgd$SPPCODE=="bkgd",]
+
 ## Needed for tryCatch'ing:
 err.null <- function (e) return(NULL)
 

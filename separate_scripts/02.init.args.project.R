@@ -27,16 +27,16 @@ enviro.data.type = c('continuous','continuous','continuous','continuous',
 	for(i in 1:length(args)) { 
 		eval(parse(text=args[[i]])) 
 	}
-	# expecting wd, species, es
+	# expecting wd, species, es, model.scale, project.scale
 	es.name = basename(es)
 	enviro.data = list.files(es, full.names=TRUE)
 	enviro.data.names = basename(enviro.data)
-	
+
 }
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
 # define path to helper function my.BIOMOD_Projection() for lzw compressed gtiff output
-function.path = "/home/jc140298/ibccvl"
+function.path = "/home/jc140298/MQ_JCU_work/separate_scripts"
 
 ### define the models to be used for projection
 project.bioclim = TRUE #boolean to project BIOCLIM algorithm 
@@ -89,9 +89,9 @@ biomod.filtered.meth = NULL #a vector of a subset of models evaluation method co
 # EMG commented out of modified my.BIOMOD_Projection.R
 biomod.build.clamping.mask = FALSE #if TRUE, a clamping mask will be saved on hard drive
 opt.biomod.silent = FALSE #logical, if TRUE, console outputs are turned off
-opt.biomod.do.stack = TRUE #logical, if TRUE, attempt to save all projections in a unique object i.e RasterStack
+opt.biomod.do.stack = FALSE #logical, if TRUE, attempt to save all projections in a unique object i.e RasterStack
 opt.biomod.keep.in.memory = TRUE #logical, if FALSE only the link pointing to a hard drive copy of projections are stored in output object
-opt.biomod.output.format = '.GTiff' #'.Rdata', '.grd' or '.img'; if NULL, and new.env is not a Raster class, output is .RData defining projections saving format (on hard drive)
+opt.biomod.output.format = '.ascii' #'.Rdata', '.grd' or '.img'; if NULL, and new.env is not a Raster class, output is .RData defining projections saving format (on hard drive)
 
 ### define the biomod2 models to be used for projection
 project.glm = TRUE #boolean to project generalized linear model algorithm
@@ -106,4 +106,4 @@ project.rf = TRUE #boolean to project random forest algorithm
 project.biomod.maxent = FALSE #boolean to project {biomod} maxent algorithm
 
 # save workspace to set arguments used by 02.project.R
-save.image(paste(wd, "/02.init.args.project.", species, ".", es.name, ".RData", sep=""))
+save.image(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
