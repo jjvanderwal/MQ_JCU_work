@@ -22,71 +22,16 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-# load in the data
-if (file.exists(paste(wd, "/occur.RData", sep="")) && file.exists(paste(wd, "/bkgd.RData", sep=""))) {
-	load(paste(wd, "/occur.RData", sep="")); load(paste(wd, "/bkgd.RData", sep=""));
-} else {
-	warning("No occurrence or background data available for model evaulation!")
-}
+###read in the necessary observation and background data
+occur = read.csv(occur.data) #read in the observation data lon/lat
+bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-# source my modified version of biomod2's Evaluate.models.R for consistent model accuracy statistics
-source(paste(function.path, "/my.Evaluate.models.R", sep=""))
+# source helper functions (saveBIOMODModelEvaluation)
+source(paste(function.path, "/my.Helper.Functions.R", sep=""))
+
 # model accuracy statistics - combine stats from dismo and biomod2 for consistent output
 model.accuracy = c(dismo.eval.method, biomod.models.eval.meth)
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
-# function to get model object
-getModelObject = function(model.name) {
-	model.dir = paste(wd, "/output_", model.name, "/", sep=""); setwd(model.dir);
-	model.obj = tryCatch(get(load(file=paste(model.dir, "/model.object.RData", sep=""))), error = err.null)
-}
-
-# function to save model object, response curves, and variable importance
-saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
-	# get and save the model evaluation statistics
-	# EMG these must specified during model creation with the arg "models.eval.meth"
-	evaluation = getModelsEvaluations(biomod.model)
-	write.csv(evaluation, file=paste(getwd(), "/biomod2.modelEvaluation.txt", sep=""))
-
-	# get the model predictions and observed values
-	predictions = getModelsPrediction(biomod.model); obs = getModelsInputData(biomod.model, "resp.var");
-
-	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
-	combined.eval = sapply(model.accuracy, function(x){
-		return(my.Find.Optim.Stat(Stat = x, Fit = predictions, Obs = obs))
-	})
-	# save all the model accuracy statistics provided in both dismo and biomod2
-	rownames(combined.eval) <- c("Testing.data","Cutoff","Sensitivity", "Specificity")
-	write.csv(t(round(combined.eval, digits=3)), file=paste(getwd(), "/combined.modelEvaluation.csv", sep=""))
-		
-	# save AUC curve
-	require(pROC, quietly=T)
-    roc1 <- roc(as.numeric(obs), as.numeric(predictions), percent=T)
-	png(file=paste(getwd(), "/pROC.png", sep=''))
-	plot(roc1, main=paste("AUC=",round(auc(roc1)/100,3),sep=""), legacy.axes=TRUE)
-	dev.off()
-	
-	# get and save the variable importance estimates
-	variableImpt = getModelsVarImport(biomod.model)
-	if (!is.na(variableImpt)) {
-	#EMG Note this will throw a warning message if variables (array) are returned	
-		write.csv(variableImpt, file=paste(getwd(), "/variableImportance.txt", sep=""))
-	} else {
-		message("VarImport argument not specified during model creation!")
-		#EMG must create the model with the arg "VarImport" != 0
-	}
-
-	# save response curves (Elith et al 2005)
-	png(file=paste(getwd(), "/mean_response_curves.png", sep=''))
-		test=response.plot2(models = loaded.name, Data = getModelsInputData(biomod.model,"expl.var"),
-			show.variables = getModelsInputData(biomod.model,"expl.var.names"), fixed.var.metric = "mean") 
-			#, data_species = getModelsInputData(biomod.model,"resp.var"))
-			# EMG need to investigate why you would want to use this option - uses presence data only
-	dev.off()
-}
-	
 ###evaluate the models and save the outputs
 ############### BIOMOD2 Models ###############
 ###############
@@ -113,9 +58,9 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 if (evaluate.mars) {	
 	mars.obj = getModelObject("mars") # get the model object
 	if (!is.null(mars.obj)) {
+		outdir = paste(wd,'/output_mars',sep=''); setwd(outdir)
 		mars.loaded.model = BIOMOD_LoadModels(mars.obj, models="MARS") # load model
 		saveBIOMODModelEvaluation(mars.loaded.model, mars.obj) 	# save output
-		rm("mars.obj") #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load mars.obj from", getwd(), sep=": "), stdout())
 	}

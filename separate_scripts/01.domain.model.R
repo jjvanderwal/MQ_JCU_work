@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #################################################################################
 #
@@ -53,10 +50,9 @@ if (model.domain) {
 		warning("domain not run because categorical data cannot be used")
 	} else {
 		outdir = paste(wd,'/output_domain',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-		dm = tryCatch(domain(x=occur[,enviro.data.names]), error = err.null) #run domain with matrix of enviro data
+		dm = domain(x=occur[,enviro.data.names]) #run domain with matrix of enviro data
 		if (!is.null(dm)) {	
 			save(dm,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-			rm(dm); #clean up memory
 		} else {
 			write(paste("FAIL!", species, "Cannot create domain model object", sep=": "), stdout())
 		}

@@ -32,9 +32,6 @@ combined_occur_bkgd = rbind(occur, bkgd)
 combined_occur_bkgd = combined_occur_bkgd[-which(duplicated(combined_occur_bkgd[,c("lon","lat")])),]
 bkgd = combined_occur_bkgd[combined_occur_bkgd$SPPCODE=="bkgd",]
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -53,10 +50,9 @@ err.null <- function (e) return(NULL)
 
 if (model.voronoiHull) {
 	outdir = paste(wd,'/output_voronoiHull',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-	vh = tryCatch(voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
+	vh = voronoiHull(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
 	if (!is.null(vh)) {	
 		save(vh,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(vh); #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create voronoiHull model object", sep=": "), stdout())
 	}

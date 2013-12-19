@@ -74,7 +74,7 @@ if (model.brt) { #additional parameters to set
 
 model.maxent = TRUE #boolean to run maxent algorithm
 if (model.maxent) {
-	maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar" #define location of maxent.jar file
+	maxent.jar = "/home/jc140298/maxent.jar" #define location of maxent.jar file
 	outputformat="logistic" #options include logistic, cumulative, raw
 	randomseed=FALSE
 	logscale=TRUE

@@ -17,7 +17,7 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+# source helper functions (getModelObject, checkModelLayers, saveModelProject)
 source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
@@ -59,7 +59,6 @@ if (project.circles) {
 		predictors = checkModelLayers(circles.obj)
 		circles.proj = predict(circles.obj, predictors, ext=opt.ext) # predict for given climate scenario
 		saveModelProjection(circles.proj, "circles") 	# save output
-		rm(list=c("circles.obj", "circles.proj")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load circles.obj from", wd, "/output_circles", sep=": "), stdout())
 	}

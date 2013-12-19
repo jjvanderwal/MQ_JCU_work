@@ -17,7 +17,7 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+# source helper functions (getModelObject, checkModelLayers, saveModelProject)
 source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
@@ -59,7 +59,6 @@ if (project.mahal) {
 		predictors = checkModelLayers(mahal.obj)
 		mahal.proj = predict(mahal.obj, predictors, ext=opt.ext) # predict for given climate scenario
 		saveModelProjection(mahal.proj, "mahal") 	# save output
-		rm(list=c("mahal.obj", "mahal.proj")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load mahal.obj from", wd, "/output_mahal", sep=": "), stdout())
 	}

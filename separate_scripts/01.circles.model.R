@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -51,10 +48,9 @@ err.null <- function (e) return(NULL)
 
 if (model.circles) {
 	outdir = paste(wd,'/output_circles',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-	cc = tryCatch(circles(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run circles 
+	cc = circles(p=occur[,c('lon','lat')], lonlat=TRUE) #run circles 
 	if (!is.null(cc)) {	
 		save(cc,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(cc); #clean up memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create circles model object", sep=": "), stdout())
 	}

@@ -1,0 +1,598 @@
+
+R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # create the shell script to set the arguments and project the models for each species and climate scenario
+> 
+> # define location of R scripts
+> script.dir = "/home/jc140298/MQ_JCU_work/separate_scripts"
+> 
+> # define working dir
+> wd = "/rdsi/ccimpacts/SDM_assessment"
+> 
+> # define taxa
+> taxa = c("mammals", "birds", "reptiles", "amphibians")
+> 
+> # define spatial scales
+> scales = c("5km", "1km", "250m")
+> 
+> # create a list of model algorithms
+> model.algorithms = c("bioclim", "domain", "mahal", "geodist", "convHull", "circles", "geoIDW", "voronoiHull", "brt", "maxent",
++ 	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf", "biomod.maxent")
+> 
+> # define root climate scenarios directory, each directory should have env files related to a climate scenario
+> scenarios.dir = "/rdsi/ctbcc_data/Climate/CIAS/Australia"
+> 
+> # create the individual shell scripts
+> for (taxon in taxa[1]) {
++ 
++ 	taxon.dir = paste(wd, "/", taxon, sep="")
++ 	
++ 	# get a list of species directories
++ 	species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
++ 
++ 	for (sp in species.names) { # cycle through each of the species
++ 
++ 		# set the species arg
++ 		species.arg = sp
++ 			
++ 		for (i in 1:length(scales[1:2])) {
++ 		#EMG Only 5km, 1km is currently available (in current.76to05)
++ 		
++ 			model.scale = scales[i]
++ 			project.scale = scales[i]
++ 
++ 			# create the species specific working directory argument
++ 			sp.wd.arg = paste(taxon.dir, "/models/", sp, "/", model.scale, sep=""); setwd(sp.wd.arg)
++ 			
++ 			all.scenarios = list.files(paste(scenarios.dir, "/", model.scale, "/bioclim_asc", sep=""),
++ 				full.names=TRUE)
++ 			#EMG just want current and all RCP85_xxxx_2055 
++ 			current.scenario = all.scenarios[grep("current", all.scenarios)]
++ 			rcp85.scenarios = all.scenarios[grep("RCP85", all.scenarios)]
++ 			yr.scenarios = rcp85.scenarios[grep("2055", rcp85.scenarios)]
++ 			scenarios = c(current.scenario, yr.scenarios)
++ 			
++ 			# create the shell file
++ 			shell.file.name = paste(sp.wd.arg, "/02.project.", sp, ".", model.scale, "_", project.scale, ".sh", sep="")
++ 		
++ 			shell.file = file(shell.file.name, "w")
++ 				cat('#!/bin/bash\n', file=shell.file)
++ 				cat('#PBS -j oe\n', file=shell.file) # combine stdout and stderr into one file
++ 				cat('cd $PBS_O_WORKDIR\n', file=shell.file)
++ 				cat('source /etc/profile.d/modules.sh\n', file=shell.file) # need for java
++ 				cat('module load java\n', file=shell.file) # need for maxent
++ 				cat('module load R\n', file=shell.file) # need for R
++ 
++ 				for (model in model.algorithms[11:19]) { # cycle through each model algorithm
++ 				# EMG only dismo models until I sort out asc.gz projections
++ 	
++ 				# create output directory
++ 				#outdir = paste(sp.wd.arg, "/output_", model, sep='')
++ 				# EMG already created for now, not sure where to do this in the future
++ 							
++ 					for (es in scenarios) { # cycle through each of the climate scenarios
++ 						es.name = basename(es)
++ 						# this job calls the 02.init.args.project.R file using arguments defined above to set the parameters for the models
++ 						cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\" model.scale=\"", model.scale, "\" project.scale=\"", project.scale, "\"' ", script.dir, "/02.init.args.project.R ", sp.wd.arg, "/02.init.args.project.", sp, ".", es.name, ".", model.scale, "_", project.scale, ".Rout \n", sep="", file=shell.file)
++ 						# this job calls the 02.project.R file to run the models
++ 						cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\" model.scale=\"", model.scale, "\" project.scale=\"", project.scale, "\"' ", script.dir, "/02.", model, ".project.R ", sp.wd.arg, "/02.", model, ".project.", sp, ".", es.name, ".", model.scale, "_", project.scale, ".Rout \n", sep="", file=shell.file)
++ 					} # end for climate scenario								
++ 				} # end for model
++ 			close(shell.file)
++ 
++ 			# submit job
++ 			system(paste("qsub -l nodes=1:ppn=1 -l pmem=2gb ", shell.file.name, sep=""))
++ 
++ 		} # end for model scale
++ 	} # end for species
++ } # end for taxon
+5107.jobmgr.hpc.jcu.edu.au
+5108.jobmgr.hpc.jcu.edu.au
+5109.jobmgr.hpc.jcu.edu.au
+5110.jobmgr.hpc.jcu.edu.au
+5111.jobmgr.hpc.jcu.edu.au
+5112.jobmgr.hpc.jcu.edu.au
+5113.jobmgr.hpc.jcu.edu.au
+5114.jobmgr.hpc.jcu.edu.au
+5115.jobmgr.hpc.jcu.edu.au
+5116.jobmgr.hpc.jcu.edu.au
+5117.jobmgr.hpc.jcu.edu.au
+5118.jobmgr.hpc.jcu.edu.au
+5119.jobmgr.hpc.jcu.edu.au
+5120.jobmgr.hpc.jcu.edu.au
+5121.jobmgr.hpc.jcu.edu.au
+5122.jobmgr.hpc.jcu.edu.au
+5123.jobmgr.hpc.jcu.edu.au
+5124.jobmgr.hpc.jcu.edu.au
+5125.jobmgr.hpc.jcu.edu.au
+5126.jobmgr.hpc.jcu.edu.au
+5127.jobmgr.hpc.jcu.edu.au
+5128.jobmgr.hpc.jcu.edu.au
+5129.jobmgr.hpc.jcu.edu.au
+5130.jobmgr.hpc.jcu.edu.au
+5131.jobmgr.hpc.jcu.edu.au
+5132.jobmgr.hpc.jcu.edu.au
+5133.jobmgr.hpc.jcu.edu.au
+5134.jobmgr.hpc.jcu.edu.au
+5135.jobmgr.hpc.jcu.edu.au
+5136.jobmgr.hpc.jcu.edu.au
+5137.jobmgr.hpc.jcu.edu.au
+5138.jobmgr.hpc.jcu.edu.au
+5139.jobmgr.hpc.jcu.edu.au
+5140.jobmgr.hpc.jcu.edu.au
+5141.jobmgr.hpc.jcu.edu.au
+5142.jobmgr.hpc.jcu.edu.au
+5143.jobmgr.hpc.jcu.edu.au
+5144.jobmgr.hpc.jcu.edu.au
+5145.jobmgr.hpc.jcu.edu.au
+5146.jobmgr.hpc.jcu.edu.au
+5147.jobmgr.hpc.jcu.edu.au
+5148.jobmgr.hpc.jcu.edu.au
+5149.jobmgr.hpc.jcu.edu.au
+5150.jobmgr.hpc.jcu.edu.au
+5151.jobmgr.hpc.jcu.edu.au
+5152.jobmgr.hpc.jcu.edu.au
+5153.jobmgr.hpc.jcu.edu.au
+5154.jobmgr.hpc.jcu.edu.au
+5155.jobmgr.hpc.jcu.edu.au
+5156.jobmgr.hpc.jcu.edu.au
+5157.jobmgr.hpc.jcu.edu.au
+5158.jobmgr.hpc.jcu.edu.au
+5159.jobmgr.hpc.jcu.edu.au
+5160.jobmgr.hpc.jcu.edu.au
+5161.jobmgr.hpc.jcu.edu.au
+5162.jobmgr.hpc.jcu.edu.au
+5163.jobmgr.hpc.jcu.edu.au
+5164.jobmgr.hpc.jcu.edu.au
+5165.jobmgr.hpc.jcu.edu.au
+5166.jobmgr.hpc.jcu.edu.au
+5167.jobmgr.hpc.jcu.edu.au
+5168.jobmgr.hpc.jcu.edu.au
+5169.jobmgr.hpc.jcu.edu.au
+5170.jobmgr.hpc.jcu.edu.au
+5171.jobmgr.hpc.jcu.edu.au
+5172.jobmgr.hpc.jcu.edu.au
+5173.jobmgr.hpc.jcu.edu.au
+5174.jobmgr.hpc.jcu.edu.au
+5175.jobmgr.hpc.jcu.edu.au
+5176.jobmgr.hpc.jcu.edu.au
+5177.jobmgr.hpc.jcu.edu.au
+5178.jobmgr.hpc.jcu.edu.au
+5179.jobmgr.hpc.jcu.edu.au
+5180.jobmgr.hpc.jcu.edu.au
+5181.jobmgr.hpc.jcu.edu.au
+5182.jobmgr.hpc.jcu.edu.au
+5183.jobmgr.hpc.jcu.edu.au
+5184.jobmgr.hpc.jcu.edu.au
+5185.jobmgr.hpc.jcu.edu.au
+5186.jobmgr.hpc.jcu.edu.au
+5187.jobmgr.hpc.jcu.edu.au
+5188.jobmgr.hpc.jcu.edu.au
+5189.jobmgr.hpc.jcu.edu.au
+5190.jobmgr.hpc.jcu.edu.au
+5191.jobmgr.hpc.jcu.edu.au
+5192.jobmgr.hpc.jcu.edu.au
+5193.jobmgr.hpc.jcu.edu.au
+5194.jobmgr.hpc.jcu.edu.au
+5195.jobmgr.hpc.jcu.edu.au
+5196.jobmgr.hpc.jcu.edu.au
+5197.jobmgr.hpc.jcu.edu.au
+5198.jobmgr.hpc.jcu.edu.au
+5199.jobmgr.hpc.jcu.edu.au
+5200.jobmgr.hpc.jcu.edu.au
+5201.jobmgr.hpc.jcu.edu.au
+5202.jobmgr.hpc.jcu.edu.au
+5203.jobmgr.hpc.jcu.edu.au
+5204.jobmgr.hpc.jcu.edu.au
+5205.jobmgr.hpc.jcu.edu.au
+5206.jobmgr.hpc.jcu.edu.au
+5207.jobmgr.hpc.jcu.edu.au
+5208.jobmgr.hpc.jcu.edu.au
+5209.jobmgr.hpc.jcu.edu.au
+5210.jobmgr.hpc.jcu.edu.au
+5211.jobmgr.hpc.jcu.edu.au
+5212.jobmgr.hpc.jcu.edu.au
+5213.jobmgr.hpc.jcu.edu.au
+5214.jobmgr.hpc.jcu.edu.au
+5215.jobmgr.hpc.jcu.edu.au
+5216.jobmgr.hpc.jcu.edu.au
+5217.jobmgr.hpc.jcu.edu.au
+5218.jobmgr.hpc.jcu.edu.au
+5219.jobmgr.hpc.jcu.edu.au
+5220.jobmgr.hpc.jcu.edu.au
+5221.jobmgr.hpc.jcu.edu.au
+5222.jobmgr.hpc.jcu.edu.au
+5223.jobmgr.hpc.jcu.edu.au
+5224.jobmgr.hpc.jcu.edu.au
+5225.jobmgr.hpc.jcu.edu.au
+5226.jobmgr.hpc.jcu.edu.au
+5227.jobmgr.hpc.jcu.edu.au
+5228.jobmgr.hpc.jcu.edu.au
+5229.jobmgr.hpc.jcu.edu.au
+5230.jobmgr.hpc.jcu.edu.au
+5231.jobmgr.hpc.jcu.edu.au
+5232.jobmgr.hpc.jcu.edu.au
+5233.jobmgr.hpc.jcu.edu.au
+5234.jobmgr.hpc.jcu.edu.au
+5235.jobmgr.hpc.jcu.edu.au
+5236.jobmgr.hpc.jcu.edu.au
+5237.jobmgr.hpc.jcu.edu.au
+5238.jobmgr.hpc.jcu.edu.au
+5239.jobmgr.hpc.jcu.edu.au
+5240.jobmgr.hpc.jcu.edu.au
+5241.jobmgr.hpc.jcu.edu.au
+5242.jobmgr.hpc.jcu.edu.au
+5243.jobmgr.hpc.jcu.edu.au
+5244.jobmgr.hpc.jcu.edu.au
+5245.jobmgr.hpc.jcu.edu.au
+5246.jobmgr.hpc.jcu.edu.au
+5247.jobmgr.hpc.jcu.edu.au
+5248.jobmgr.hpc.jcu.edu.au
+5249.jobmgr.hpc.jcu.edu.au
+5250.jobmgr.hpc.jcu.edu.au
+5251.jobmgr.hpc.jcu.edu.au
+5252.jobmgr.hpc.jcu.edu.au
+5253.jobmgr.hpc.jcu.edu.au
+5254.jobmgr.hpc.jcu.edu.au
+5255.jobmgr.hpc.jcu.edu.au
+5256.jobmgr.hpc.jcu.edu.au
+5257.jobmgr.hpc.jcu.edu.au
+5258.jobmgr.hpc.jcu.edu.au
+5259.jobmgr.hpc.jcu.edu.au
+5260.jobmgr.hpc.jcu.edu.au
+5261.jobmgr.hpc.jcu.edu.au
+5262.jobmgr.hpc.jcu.edu.au
+5263.jobmgr.hpc.jcu.edu.au
+5264.jobmgr.hpc.jcu.edu.au
+5265.jobmgr.hpc.jcu.edu.au
+5266.jobmgr.hpc.jcu.edu.au
+5267.jobmgr.hpc.jcu.edu.au
+5268.jobmgr.hpc.jcu.edu.au
+5269.jobmgr.hpc.jcu.edu.au
+5270.jobmgr.hpc.jcu.edu.au
+5271.jobmgr.hpc.jcu.edu.au
+5272.jobmgr.hpc.jcu.edu.au
+5273.jobmgr.hpc.jcu.edu.au
+5274.jobmgr.hpc.jcu.edu.au
+5275.jobmgr.hpc.jcu.edu.au
+5276.jobmgr.hpc.jcu.edu.au
+5277.jobmgr.hpc.jcu.edu.au
+5278.jobmgr.hpc.jcu.edu.au
+5279.jobmgr.hpc.jcu.edu.au
+5280.jobmgr.hpc.jcu.edu.au
+5281.jobmgr.hpc.jcu.edu.au
+5282.jobmgr.hpc.jcu.edu.au
+5283.jobmgr.hpc.jcu.edu.au
+5284.jobmgr.hpc.jcu.edu.au
+5285.jobmgr.hpc.jcu.edu.au
+5286.jobmgr.hpc.jcu.edu.au
+5287.jobmgr.hpc.jcu.edu.au
+5288.jobmgr.hpc.jcu.edu.au
+5289.jobmgr.hpc.jcu.edu.au
+5290.jobmgr.hpc.jcu.edu.au
+5291.jobmgr.hpc.jcu.edu.au
+5292.jobmgr.hpc.jcu.edu.au
+5293.jobmgr.hpc.jcu.edu.au
+5294.jobmgr.hpc.jcu.edu.au
+5295.jobmgr.hpc.jcu.edu.au
+5296.jobmgr.hpc.jcu.edu.au
+5297.jobmgr.hpc.jcu.edu.au
+5298.jobmgr.hpc.jcu.edu.au
+5299.jobmgr.hpc.jcu.edu.au
+5300.jobmgr.hpc.jcu.edu.au
+5301.jobmgr.hpc.jcu.edu.au
+5302.jobmgr.hpc.jcu.edu.au
+5303.jobmgr.hpc.jcu.edu.au
+5304.jobmgr.hpc.jcu.edu.au
+5305.jobmgr.hpc.jcu.edu.au
+5306.jobmgr.hpc.jcu.edu.au
+5307.jobmgr.hpc.jcu.edu.au
+5308.jobmgr.hpc.jcu.edu.au
+5309.jobmgr.hpc.jcu.edu.au
+5310.jobmgr.hpc.jcu.edu.au
+5311.jobmgr.hpc.jcu.edu.au
+5312.jobmgr.hpc.jcu.edu.au
+5313.jobmgr.hpc.jcu.edu.au
+5314.jobmgr.hpc.jcu.edu.au
+5315.jobmgr.hpc.jcu.edu.au
+5316.jobmgr.hpc.jcu.edu.au
+5317.jobmgr.hpc.jcu.edu.au
+5318.jobmgr.hpc.jcu.edu.au
+5319.jobmgr.hpc.jcu.edu.au
+5320.jobmgr.hpc.jcu.edu.au
+5321.jobmgr.hpc.jcu.edu.au
+5322.jobmgr.hpc.jcu.edu.au
+5323.jobmgr.hpc.jcu.edu.au
+5324.jobmgr.hpc.jcu.edu.au
+5325.jobmgr.hpc.jcu.edu.au
+5326.jobmgr.hpc.jcu.edu.au
+5327.jobmgr.hpc.jcu.edu.au
+5328.jobmgr.hpc.jcu.edu.au
+5329.jobmgr.hpc.jcu.edu.au
+5330.jobmgr.hpc.jcu.edu.au
+5331.jobmgr.hpc.jcu.edu.au
+5332.jobmgr.hpc.jcu.edu.au
+5333.jobmgr.hpc.jcu.edu.au
+5334.jobmgr.hpc.jcu.edu.au
+5335.jobmgr.hpc.jcu.edu.au
+5336.jobmgr.hpc.jcu.edu.au
+5337.jobmgr.hpc.jcu.edu.au
+5338.jobmgr.hpc.jcu.edu.au
+5339.jobmgr.hpc.jcu.edu.au
+5340.jobmgr.hpc.jcu.edu.au
+5341.jobmgr.hpc.jcu.edu.au
+5342.jobmgr.hpc.jcu.edu.au
+5343.jobmgr.hpc.jcu.edu.au
+5344.jobmgr.hpc.jcu.edu.au
+5345.jobmgr.hpc.jcu.edu.au
+5346.jobmgr.hpc.jcu.edu.au
+5347.jobmgr.hpc.jcu.edu.au
+5348.jobmgr.hpc.jcu.edu.au
+5349.jobmgr.hpc.jcu.edu.au
+5350.jobmgr.hpc.jcu.edu.au
+5351.jobmgr.hpc.jcu.edu.au
+5352.jobmgr.hpc.jcu.edu.au
+5353.jobmgr.hpc.jcu.edu.au
+5354.jobmgr.hpc.jcu.edu.au
+5355.jobmgr.hpc.jcu.edu.au
+5356.jobmgr.hpc.jcu.edu.au
+5357.jobmgr.hpc.jcu.edu.au
+5358.jobmgr.hpc.jcu.edu.au
+5359.jobmgr.hpc.jcu.edu.au
+5360.jobmgr.hpc.jcu.edu.au
+5361.jobmgr.hpc.jcu.edu.au
+5362.jobmgr.hpc.jcu.edu.au
+5363.jobmgr.hpc.jcu.edu.au
+5364.jobmgr.hpc.jcu.edu.au
+5365.jobmgr.hpc.jcu.edu.au
+5366.jobmgr.hpc.jcu.edu.au
+5367.jobmgr.hpc.jcu.edu.au
+5368.jobmgr.hpc.jcu.edu.au
+5369.jobmgr.hpc.jcu.edu.au
+5370.jobmgr.hpc.jcu.edu.au
+5371.jobmgr.hpc.jcu.edu.au
+5372.jobmgr.hpc.jcu.edu.au
+5373.jobmgr.hpc.jcu.edu.au
+5374.jobmgr.hpc.jcu.edu.au
+5375.jobmgr.hpc.jcu.edu.au
+5376.jobmgr.hpc.jcu.edu.au
+5377.jobmgr.hpc.jcu.edu.au
+5378.jobmgr.hpc.jcu.edu.au
+5379.jobmgr.hpc.jcu.edu.au
+5380.jobmgr.hpc.jcu.edu.au
+5381.jobmgr.hpc.jcu.edu.au
+5382.jobmgr.hpc.jcu.edu.au
+5383.jobmgr.hpc.jcu.edu.au
+5384.jobmgr.hpc.jcu.edu.au
+5385.jobmgr.hpc.jcu.edu.au
+5386.jobmgr.hpc.jcu.edu.au
+5387.jobmgr.hpc.jcu.edu.au
+5388.jobmgr.hpc.jcu.edu.au
+5389.jobmgr.hpc.jcu.edu.au
+5390.jobmgr.hpc.jcu.edu.au
+5391.jobmgr.hpc.jcu.edu.au
+5392.jobmgr.hpc.jcu.edu.au
+5393.jobmgr.hpc.jcu.edu.au
+5394.jobmgr.hpc.jcu.edu.au
+5395.jobmgr.hpc.jcu.edu.au
+5396.jobmgr.hpc.jcu.edu.au
+5397.jobmgr.hpc.jcu.edu.au
+5398.jobmgr.hpc.jcu.edu.au
+5399.jobmgr.hpc.jcu.edu.au
+5400.jobmgr.hpc.jcu.edu.au
+5401.jobmgr.hpc.jcu.edu.au
+5402.jobmgr.hpc.jcu.edu.au
+5403.jobmgr.hpc.jcu.edu.au
+5404.jobmgr.hpc.jcu.edu.au
+5405.jobmgr.hpc.jcu.edu.au
+5406.jobmgr.hpc.jcu.edu.au
+5407.jobmgr.hpc.jcu.edu.au
+5408.jobmgr.hpc.jcu.edu.au
+5409.jobmgr.hpc.jcu.edu.au
+5410.jobmgr.hpc.jcu.edu.au
+5411.jobmgr.hpc.jcu.edu.au
+5412.jobmgr.hpc.jcu.edu.au
+5413.jobmgr.hpc.jcu.edu.au
+5414.jobmgr.hpc.jcu.edu.au
+5415.jobmgr.hpc.jcu.edu.au
+5416.jobmgr.hpc.jcu.edu.au
+5417.jobmgr.hpc.jcu.edu.au
+5418.jobmgr.hpc.jcu.edu.au
+5419.jobmgr.hpc.jcu.edu.au
+5420.jobmgr.hpc.jcu.edu.au
+5421.jobmgr.hpc.jcu.edu.au
+5422.jobmgr.hpc.jcu.edu.au
+5423.jobmgr.hpc.jcu.edu.au
+5424.jobmgr.hpc.jcu.edu.au
+5425.jobmgr.hpc.jcu.edu.au
+5426.jobmgr.hpc.jcu.edu.au
+5427.jobmgr.hpc.jcu.edu.au
+5428.jobmgr.hpc.jcu.edu.au
+5429.jobmgr.hpc.jcu.edu.au
+5430.jobmgr.hpc.jcu.edu.au
+5431.jobmgr.hpc.jcu.edu.au
+5432.jobmgr.hpc.jcu.edu.au
+5433.jobmgr.hpc.jcu.edu.au
+5434.jobmgr.hpc.jcu.edu.au
+5435.jobmgr.hpc.jcu.edu.au
+5436.jobmgr.hpc.jcu.edu.au
+5437.jobmgr.hpc.jcu.edu.au
+5438.jobmgr.hpc.jcu.edu.au
+5439.jobmgr.hpc.jcu.edu.au
+5440.jobmgr.hpc.jcu.edu.au
+5441.jobmgr.hpc.jcu.edu.au
+5442.jobmgr.hpc.jcu.edu.au
+5443.jobmgr.hpc.jcu.edu.au
+5444.jobmgr.hpc.jcu.edu.au
+5445.jobmgr.hpc.jcu.edu.au
+5446.jobmgr.hpc.jcu.edu.au
+5447.jobmgr.hpc.jcu.edu.au
+5448.jobmgr.hpc.jcu.edu.au
+5449.jobmgr.hpc.jcu.edu.au
+5450.jobmgr.hpc.jcu.edu.au
+5451.jobmgr.hpc.jcu.edu.au
+5452.jobmgr.hpc.jcu.edu.au
+5453.jobmgr.hpc.jcu.edu.au
+5454.jobmgr.hpc.jcu.edu.au
+5455.jobmgr.hpc.jcu.edu.au
+5456.jobmgr.hpc.jcu.edu.au
+5457.jobmgr.hpc.jcu.edu.au
+5458.jobmgr.hpc.jcu.edu.au
+5459.jobmgr.hpc.jcu.edu.au
+5460.jobmgr.hpc.jcu.edu.au
+5461.jobmgr.hpc.jcu.edu.au
+5462.jobmgr.hpc.jcu.edu.au
+5463.jobmgr.hpc.jcu.edu.au
+5464.jobmgr.hpc.jcu.edu.au
+5465.jobmgr.hpc.jcu.edu.au
+5466.jobmgr.hpc.jcu.edu.au
+5467.jobmgr.hpc.jcu.edu.au
+5468.jobmgr.hpc.jcu.edu.au
+5469.jobmgr.hpc.jcu.edu.au
+5470.jobmgr.hpc.jcu.edu.au
+5471.jobmgr.hpc.jcu.edu.au
+5472.jobmgr.hpc.jcu.edu.au
+5473.jobmgr.hpc.jcu.edu.au
+5474.jobmgr.hpc.jcu.edu.au
+5475.jobmgr.hpc.jcu.edu.au
+5476.jobmgr.hpc.jcu.edu.au
+5477.jobmgr.hpc.jcu.edu.au
+5478.jobmgr.hpc.jcu.edu.au
+5479.jobmgr.hpc.jcu.edu.au
+5480.jobmgr.hpc.jcu.edu.au
+5481.jobmgr.hpc.jcu.edu.au
+5482.jobmgr.hpc.jcu.edu.au
+5483.jobmgr.hpc.jcu.edu.au
+5484.jobmgr.hpc.jcu.edu.au
+5485.jobmgr.hpc.jcu.edu.au
+5486.jobmgr.hpc.jcu.edu.au
+5487.jobmgr.hpc.jcu.edu.au
+5488.jobmgr.hpc.jcu.edu.au
+5489.jobmgr.hpc.jcu.edu.au
+5490.jobmgr.hpc.jcu.edu.au
+5491.jobmgr.hpc.jcu.edu.au
+5492.jobmgr.hpc.jcu.edu.au
+5493.jobmgr.hpc.jcu.edu.au
+5494.jobmgr.hpc.jcu.edu.au
+5495.jobmgr.hpc.jcu.edu.au
+5496.jobmgr.hpc.jcu.edu.au
+5497.jobmgr.hpc.jcu.edu.au
+5498.jobmgr.hpc.jcu.edu.au
+5499.jobmgr.hpc.jcu.edu.au
+5500.jobmgr.hpc.jcu.edu.au
+5501.jobmgr.hpc.jcu.edu.au
+5502.jobmgr.hpc.jcu.edu.au
+5503.jobmgr.hpc.jcu.edu.au
+5504.jobmgr.hpc.jcu.edu.au
+5505.jobmgr.hpc.jcu.edu.au
+5506.jobmgr.hpc.jcu.edu.au
+5507.jobmgr.hpc.jcu.edu.au
+5508.jobmgr.hpc.jcu.edu.au
+5509.jobmgr.hpc.jcu.edu.au
+5510.jobmgr.hpc.jcu.edu.au
+5511.jobmgr.hpc.jcu.edu.au
+5512.jobmgr.hpc.jcu.edu.au
+5513.jobmgr.hpc.jcu.edu.au
+5514.jobmgr.hpc.jcu.edu.au
+5515.jobmgr.hpc.jcu.edu.au
+5516.jobmgr.hpc.jcu.edu.au
+5517.jobmgr.hpc.jcu.edu.au
+5518.jobmgr.hpc.jcu.edu.au
+5519.jobmgr.hpc.jcu.edu.au
+5520.jobmgr.hpc.jcu.edu.au
+5521.jobmgr.hpc.jcu.edu.au
+5522.jobmgr.hpc.jcu.edu.au
+5523.jobmgr.hpc.jcu.edu.au
+5524.jobmgr.hpc.jcu.edu.au
+5525.jobmgr.hpc.jcu.edu.au
+5526.jobmgr.hpc.jcu.edu.au
+5527.jobmgr.hpc.jcu.edu.au
+5528.jobmgr.hpc.jcu.edu.au
+5529.jobmgr.hpc.jcu.edu.au
+5530.jobmgr.hpc.jcu.edu.au
+5531.jobmgr.hpc.jcu.edu.au
+5532.jobmgr.hpc.jcu.edu.au
+5533.jobmgr.hpc.jcu.edu.au
+5534.jobmgr.hpc.jcu.edu.au
+5535.jobmgr.hpc.jcu.edu.au
+5536.jobmgr.hpc.jcu.edu.au
+5537.jobmgr.hpc.jcu.edu.au
+5538.jobmgr.hpc.jcu.edu.au
+5539.jobmgr.hpc.jcu.edu.au
+5540.jobmgr.hpc.jcu.edu.au
+5541.jobmgr.hpc.jcu.edu.au
+5542.jobmgr.hpc.jcu.edu.au
+5543.jobmgr.hpc.jcu.edu.au
+5544.jobmgr.hpc.jcu.edu.au
+5545.jobmgr.hpc.jcu.edu.au
+5546.jobmgr.hpc.jcu.edu.au
+5547.jobmgr.hpc.jcu.edu.au
+5548.jobmgr.hpc.jcu.edu.au
+5549.jobmgr.hpc.jcu.edu.au
+5550.jobmgr.hpc.jcu.edu.au
+5551.jobmgr.hpc.jcu.edu.au
+5552.jobmgr.hpc.jcu.edu.au
+5553.jobmgr.hpc.jcu.edu.au
+5554.jobmgr.hpc.jcu.edu.au
+5555.jobmgr.hpc.jcu.edu.au
+5556.jobmgr.hpc.jcu.edu.au
+5557.jobmgr.hpc.jcu.edu.au
+5558.jobmgr.hpc.jcu.edu.au
+5559.jobmgr.hpc.jcu.edu.au
+5560.jobmgr.hpc.jcu.edu.au
+5561.jobmgr.hpc.jcu.edu.au
+5562.jobmgr.hpc.jcu.edu.au
+5563.jobmgr.hpc.jcu.edu.au
+5564.jobmgr.hpc.jcu.edu.au
+5565.jobmgr.hpc.jcu.edu.au
+5566.jobmgr.hpc.jcu.edu.au
+5567.jobmgr.hpc.jcu.edu.au
+5568.jobmgr.hpc.jcu.edu.au
+5569.jobmgr.hpc.jcu.edu.au
+5570.jobmgr.hpc.jcu.edu.au
+5571.jobmgr.hpc.jcu.edu.au
+5572.jobmgr.hpc.jcu.edu.au
+5573.jobmgr.hpc.jcu.edu.au
+5574.jobmgr.hpc.jcu.edu.au
+5575.jobmgr.hpc.jcu.edu.au
+5576.jobmgr.hpc.jcu.edu.au
+5577.jobmgr.hpc.jcu.edu.au
+5578.jobmgr.hpc.jcu.edu.au
+5579.jobmgr.hpc.jcu.edu.au
+5580.jobmgr.hpc.jcu.edu.au
+5581.jobmgr.hpc.jcu.edu.au
+5582.jobmgr.hpc.jcu.edu.au
+5583.jobmgr.hpc.jcu.edu.au
+5584.jobmgr.hpc.jcu.edu.au
+5585.jobmgr.hpc.jcu.edu.au
+5586.jobmgr.hpc.jcu.edu.au
+5587.jobmgr.hpc.jcu.edu.au
+5588.jobmgr.hpc.jcu.edu.au
+5589.jobmgr.hpc.jcu.edu.au
+5590.jobmgr.hpc.jcu.edu.au
+5591.jobmgr.hpc.jcu.edu.au
+5592.jobmgr.hpc.jcu.edu.au
+5593.jobmgr.hpc.jcu.edu.au
+5594.jobmgr.hpc.jcu.edu.au
+5595.jobmgr.hpc.jcu.edu.au
+5596.jobmgr.hpc.jcu.edu.au
+> 	
+> 
+> proc.time()
+   user  system elapsed 
+ 22.113  41.143 384.636 

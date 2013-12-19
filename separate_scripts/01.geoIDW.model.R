@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -48,10 +45,9 @@ err.null <- function (e) return(NULL)
 
 if (model.geoIDW) {
 	outdir = paste(wd,'/output_geoIDW',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-	gidw = tryCatch(geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]), error = err.null) #run the algorithm
+	gidw = geoIDW(p=occur[,c('lon','lat')], a=bkgd[,c('lon','lat')]) #run the algorithm
 	if (!is.null(gidw)) {	
 		save(gidw,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(gidw); #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create geoIDW model object", sep=": "), stdout())
 	}

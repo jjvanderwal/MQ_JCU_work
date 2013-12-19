@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -51,10 +48,9 @@ err.null <- function (e) return(NULL)
 
 if (model.geodist) {
 	outdir = paste(wd,'/output_geodist',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-	gd = tryCatch(geoDist(p=occur[,c('lon','lat')], lonlat=TRUE), error = err.null) #run geodist 
+	gd = geoDist(p=occur[,c('lon','lat')], lonlat=TRUE) #run geodist 
 	if (!is.null(gd)) {	
 		save(gd,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(gd); #clean up memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create geodist model object", sep=": "), stdout())
 	}

@@ -17,7 +17,7 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+# source helper functions (getModelObject, checkModelLayers, saveModelProject)
 source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
@@ -61,7 +61,6 @@ if (project.brt) {
 		#	the function is defined outside of the dismo package
 		brt.proj = predict(predictors, brt.obj, n.trees=brt.obj$gbm.call$best.trees, ext=opt.ext) # predict for given climate scenario
 		saveModelProjection(brt.proj, "brt") 	# save output
-		rm(list=c("brt.obj", "brt.proj")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load brt.obj from", wd, "/output_brt", sep=": "), stdout())
 	}

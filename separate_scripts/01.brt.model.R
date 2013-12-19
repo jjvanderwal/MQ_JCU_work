@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -79,7 +76,7 @@ err.null <- function (e) return(NULL)
 if (model.brt) {
 	outdir = paste(wd,'/output_brt',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	brt.data = rbind(occur,bkgd); brt.data$pa = c(rep(1,nrow(occur)),rep(0,nrow(bkgd))) #setup the data as needed
-	brt = tryCatch(gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
+	brt = gbm.step(data=brt.data, gbm.x=which(names(brt.data) %in% enviro.data.names), 
 		gbm.y=which(names(brt.data)=='pa'), 
 		fold.vector = brt.fold.vector, 
 		tree.complexity = brt.tree.complexity, 
@@ -102,10 +99,9 @@ if (model.brt) {
 		silent = brt.silent, 
 		keep.fold.models = brt.keep.fold.models, 
 		keep.fold.vector = brt.keep.fold.vector, 
-		keep.fold.fit = brt.keep.fold.fit), error = err.null) #run the algorithm
+		keep.fold.fit = brt.keep.fold.fit) #run the algorithm
 	if (!is.null(brt)) {	
 		save(brt,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(brt); #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create brt model object", sep=": "), stdout())
 	}

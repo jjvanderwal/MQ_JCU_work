@@ -21,7 +21,8 @@ for (taxon in taxa[1]) {
 
 	taxon.dir = paste(wd, "/", taxon, sep="")
 
-	for (i in 1:length(scales[1:2])) {
+#	for (i in 1:length(scales[1:2])) {
+i=1
 	#EMG Only 5km, 1km is currently available (in current.76to05)
 
 		# set the location of the background data
@@ -30,17 +31,18 @@ for (taxon in taxa[1]) {
 		# get a list of species directories
 		species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
 
-		for (sp in species.names) { #cycle through each of the species
+		for (sp in species.names[1]) { #cycle through each of the species
 		
 			# create the species specific working directory argument
 			sp.wd.arg = paste(taxon.dir, "/models/", sp, "/", scales[i], sep=""); setwd(sp.wd.arg) 
 
 			# set the species arg
 			species.arg = sp	
+			
 			# set the location of the occurrence data
 			occur.data.arg = paste(sp.wd.arg, "/occur.csv", sep="") 
 
-			for (model in model.algorithms) { # cycle through each model algorithm
+			for (model in model.algorithms[11:19]) { # cycle through each model algorithm
 	
 				# create output directory
 				outdir = paste(sp.wd.arg, "/output_", model, sep=''); dir.create(outdir,recursive=TRUE);

@@ -19,7 +19,7 @@ species <- c("ABT")	#define the species of interest
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
 # define path to helper function my.Evaluate.models() for combined evaluation output
-function.path = "/home/jc140298/ibccvl"
+function.path = "/home/jc140298/MQ_JCU_work/separate_scripts"
 
 ### define the models to be used for evaluation
 evaluate.bioclim = TRUE #boolean to evaluate BIOCLIM algorithm 

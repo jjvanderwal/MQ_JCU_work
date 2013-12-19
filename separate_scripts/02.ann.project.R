@@ -17,7 +17,7 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+# source helper functions (getModelObject, checkModelLayers)
 source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
@@ -32,9 +32,6 @@ if (length(cache.present) > 0) { # maxent.cache is present
 	enviro.data = enviro.data[-cache.present]
 }
 climate.scenario = stack(enviro.data)
-
-# source my modified version of biomod2's BIOMOD_Projection.R for lzw compressed gtiff output
-source(paste(function.path, "/my.BIOMOD_Projection.R", sep=""))
 
 ###project the models and save raster files
 ############### BIOMOD2 Models ###############
@@ -80,13 +77,13 @@ if (project.ann) {
 	outdir = paste(wd,'/output_ann',sep=''); setwd(outdir) #set the working directory
 	if (!is.null(ann.obj)) {
 		predictors = checkModelLayers(ann.obj)
-		ann.proj = BIOMOD_Projection(modeling.output=ann.obj, new.env=predictors, proj.name=es.name, 
+		ann.proj = BIOMOD_Projection(modeling.output=ann.obj, new.env=predictors, 
+			proj.name=paste(es.name, "_", model.scale, "_", project.scale, sep=""), 
 			xy.new.env = biomod.xy.new.env,	selected.models = biomod.selected.models, binary.meth = biomod.binary.meth, 
-			filtered.meth = biomod.filtered.meth, #compress = biomod.compress, 
+			filtered.meth = biomod.filtered.meth, compress = biomod.compress, 
 			build.clamping.mask = biomod.build.clamping.mask, silent = opt.biomod.silent, do.stack = opt.biomod.do.stack, 
 			keep.in.memory = opt.biomod.keep.in.memory,	output.format = opt.biomod.output.format)
 		# output is saved as part of the projection, format specified in arg 'opt.biomod.output.format'
-		rm(list=c("ann.obj", "ann.proj")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load ann.obj from", wd, "/output_ann", sep=": "), stdout())
 	}

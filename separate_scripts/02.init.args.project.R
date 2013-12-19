@@ -35,7 +35,7 @@ enviro.data.type = c('continuous','continuous','continuous','continuous',
 }
 # EMG need to expand this to include all other args or come up with a way to parse this properly
 
-# define path to helper function my.BIOMOD_Projection() for lzw compressed gtiff output
+# define path to helper functions
 function.path = "/home/jc140298/MQ_JCU_work/separate_scripts"
 
 ### define the models to be used for projection
@@ -66,7 +66,7 @@ project.brt = TRUE #boolean to project Boosted regression tree algorithm
 
 project.maxent = TRUE #boolean to project maxent algorithm
 if (project.maxent) {
-	maxent.jar = "/home/jc165798/working/BCCVL/maxent.jar" #define location of maxent.jar file
+	maxent.jar = "/home/jc140298/maxent.jar" #define location of maxent.jar file
 	# there is also an additional argument 'args' used to pass arguments (options) to the maxent software.
 }
 
@@ -85,13 +85,12 @@ biomod.xy.new.env = NULL #optional coordinates of new.env data. Ignored if new.e
 biomod.selected.models = 'all' #'all' when all models have to be used to render projections or a subset vector of modeling.output models computed (eg, = grep(’_RF’, getModelsBuiltModels(myBiomodModelOut)))
 biomod.binary.meth = NULL #a vector of a subset of models evaluation method computed in model creation 
 biomod.filtered.meth = NULL #a vector of a subset of models evaluation method computed in model creation
-#biomod.compress = 'gzip' #compression format of objects stored on your hard drive. May be one of ‘xz’, ‘gzip’ or NULL
-# EMG commented out of modified my.BIOMOD_Projection.R
+biomod.compress = "gzip" #compression format of objects stored on your hard drive. May be one of ‘xz’, ‘gzip’ or NULL
 biomod.build.clamping.mask = FALSE #if TRUE, a clamping mask will be saved on hard drive
 opt.biomod.silent = FALSE #logical, if TRUE, console outputs are turned off
 opt.biomod.do.stack = FALSE #logical, if TRUE, attempt to save all projections in a unique object i.e RasterStack
 opt.biomod.keep.in.memory = TRUE #logical, if FALSE only the link pointing to a hard drive copy of projections are stored in output object
-opt.biomod.output.format = '.ascii' #'.Rdata', '.grd' or '.img'; if NULL, and new.env is not a Raster class, output is .RData defining projections saving format (on hard drive)
+opt.biomod.output.format = '.grd' #'.Rdata', '.grd' or '.img'; if NULL, and new.env is not a Raster class, output is .RData defining projections saving format (on hard drive)
 
 ### define the biomod2 models to be used for projection
 project.glm = TRUE #boolean to project generalized linear model algorithm

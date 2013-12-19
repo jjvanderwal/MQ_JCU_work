@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #############################################################################################
 #
@@ -49,10 +46,9 @@ err.null <- function (e) return(NULL)
 
 if (model.convHull) {
 	outdir = paste(wd,'/output_convHull',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-	ch = tryCatch(convHull(p=occur[,c('lon','lat')]), error = err.null) #run convex hull 
+	ch = convHull(p=occur[,c('lon','lat')]) #run convex hull 
 	if (!is.null(ch)) {		
 		save(ch,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-		rm(ch); #clean up memory
 	} else {
 		write(paste("FAIL!", species, "Cannot create convHull model object", sep=": "), stdout())
 	}

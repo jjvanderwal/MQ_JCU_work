@@ -26,9 +26,6 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur = read.csv(occur.data) #read in the observation data lon/lat
 bkgd = read.csv(bkgd.data) #read in the background data lon/lat
 
-## Needed for tryCatch'ing:
-err.null <- function (e) return(NULL)
-
 ###run the models and store models
 #################################################################################
 #
@@ -53,10 +50,9 @@ if (model.mahal) {
 		warning("Mahal not run because categorical data cannot be used")
 	} else {
 		outdir = paste(wd,'/output_mahal',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
-		mm = tryCatch(mahal(x=occur[,enviro.data.names]), error = err.null) #run mahal with matrix of enviro data
+		mm = mahal(x=occur[,enviro.data.names]) #run mahal with matrix of enviro data
 		if (!is.null(mm)) {	
 			save(mm,file=paste(outdir,"/model.object.RData",sep='')) #save out the model object
-			rm(mm); #clean up memory
 		} else {
 			write(paste("FAIL!", species, "Cannot create mahal model object", sep=": "), stdout())
 		}

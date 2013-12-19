@@ -17,9 +17,6 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
-source(paste(function.path, "/my.Helper.Functions.R", sep=""))
-
 ### check if libraries are installed, install if necessary and then load them
 necessary=c("dismo","SDMTools", "rJava") #list the libraries needed
 installed = necessary %in% installed.packages() #check if library is installed
@@ -61,17 +58,20 @@ if (project.maxent) {
 	
 	# create output directory
 	model.dir = paste(wd, "/output_maxent", sep="")
+	outfilename = paste(model.dir, "/", es.name, "_", model.scale, "_", project.scale, ".asc", sep="")
 	
 	### not user modified section
 	tstr = paste("java -cp ", maxent.jar, " density.Project ", model.dir, "/", species, ".lambdas ", sep="")
 	# where to find the climate scenarios
 	tstr = paste(tstr, dirname(enviro.data[1]), " ", sep="")
 	# where to put, what to name the output
-	tstr = paste(tstr, model.dir, "/", es.name, ".asc", sep="")
+	tstr = paste(tstr, outfilename, sep="")
 	# optional arguments
 	tstr = paste(tstr, " nowriteclampgrid nowritemess fadebyclamping dontcache", sep="")
 	system(tstr)
 	
 	# EMG cache=FALSE nocache and dontcache all manage to be ignored and a maxent.cache is created
 	# EMG 'outputfiletype' = asc, mxe, grd, bil only NOT geotiff; can create *.png ('pictures=TRUE')
+	
+	system(paste("gzip ", outfilename, sep=""))
 }

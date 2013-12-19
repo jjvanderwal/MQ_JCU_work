@@ -17,7 +17,7 @@ if(length(args)==0){
 # load arguments file
 load(paste(wd, "/02.init.args.project.", species, ".", es.name, ".", model.scale, "_", project.scale, ".RData", sep=""))
 
-# source helper functions (err.null, getModelObject, checkModelLayers, saveModelProject)
+# source helper functions (getModelObject, checkModelLayers, saveModelProject)
 source(paste(function.path, "/my.Helper.Functions.R", sep=""))
 
 ### check if libraries are installed, install if necessary and then load them
@@ -59,7 +59,6 @@ if (project.geoIDW) {
 		predictors = checkModelLayers(geoIDW.obj)
 		geoIDW.proj = predict(geoIDW.obj, predictors, ext=opt.ext, fun=opt.fun) # predict for given climate scenario
 		saveModelProjection(geoIDW.proj, "geoIDW") 	# save output
-		rm(list=c("geoIDW.obj", "geoIDW.proj")) #clean up the memory
 	} else {
 		write(paste("FAIL!", species, "Cannot load geoIDW.obj from", wd, "/output_geoIDW", sep=": "), stdout())
 	}
