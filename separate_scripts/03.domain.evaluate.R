@@ -85,6 +85,10 @@ if (evaluate.domain) {
 		outdir = paste(wd,'/output_domain',sep=''); setwd(outdir)
 		
 		domain.eval = evaluate(p=occur, a=bkgd, model=domain.obj) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = domain.eval@cor; correlation.pvalue = domain.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		domain.fit = c(domain.eval@presence, domain.eval@absence)
@@ -94,6 +98,8 @@ if (evaluate.domain) {
 		domain.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = domain.fit, Obs = domain.obs))
 		})
+		# add correlation column to output
+		domain.combined.eval = cbind(domain.combined.eval, COR)
 		saveModelEvaluation(domain.eval, domain.combined.eval)	# save output
 				
 		# create response curves

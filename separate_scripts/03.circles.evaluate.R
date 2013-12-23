@@ -86,6 +86,10 @@ if (evaluate.circles) {
 		
 		circles.eval = evaluate(model=circles.obj, p=occur[c("lon","lat")], 
 			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = circles.eval@cor; correlation.pvalue = circles.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		circles.fit = c(circles.eval@presence, circles.eval@absence)
@@ -95,6 +99,8 @@ if (evaluate.circles) {
 		circles.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = circles.fit, Obs = circles.obs))
 		})
+		# add correlation column to output
+		circles.combined.eval = cbind(circles.combined.eval, COR)
 		saveModelEvaluation(circles.eval, circles.combined.eval)	# save output
 						
 		# create response curves

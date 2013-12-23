@@ -59,8 +59,8 @@ for (taxon in taxa[1]) {
 				cat('module load java\n', file=shell.file) # need for maxent
 				cat('module load R\n', file=shell.file) # need for R
 
-				for (model in model.algorithms[10]) { # cycle through each model algorithm	
-					for (es in scenarios[1]) { # cycle through each of the climate scenarios
+				for (model in model.algorithms[c(8,10)]) { # cycle through each model algorithm	
+					for (es in scenarios) { # cycle through each of the climate scenarios
 						es.name = basename(es)
 						# this job calls the 02.init.args.project.R file using arguments defined above to set the parameters for the models
 						cat("R CMD BATCH --no-save --no-restore '--args wd=\"", sp.wd.arg, "\" species=\"", species.arg, "\" es=\"", es, "\" model.scale=\"", model.scale, "\" project.scale=\"", project.scale, "\"' ", script.dir, "/02.init.args.project.R ", sp.wd.arg, "/02.init.args.project.", sp, ".", es.name, ".", model.scale, "_", project.scale, ".Rout \n", sep="", file=shell.file)

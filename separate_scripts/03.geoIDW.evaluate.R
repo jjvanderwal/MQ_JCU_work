@@ -86,6 +86,10 @@ if (evaluate.geoIDW) {
 		
 		geoIDW.eval = evaluate(model=geoIDW.obj, p=occur[c("lon","lat")], 
 			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = geoIDW.eval@cor; correlation.pvalue = geoIDW.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		geoIDW.fit = c(geoIDW.eval@presence, geoIDW.eval@absence)
@@ -95,6 +99,8 @@ if (evaluate.geoIDW) {
 		geoIDW.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = geoIDW.fit, Obs = geoIDW.obs))
 		})
+		# add correlation column to output
+		geoIDW.combined.eval = cbind(geoIDW.combined.eval, COR)
 		saveModelEvaluation(geoIDW.eval, geoIDW.combined.eval)	# save output
 						
 		# create response curves

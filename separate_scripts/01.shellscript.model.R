@@ -42,7 +42,7 @@ i=1
 			# set the location of the occurrence data
 			occur.data.arg = paste(sp.wd.arg, "/occur.csv", sep="") 
 
-			for (model in model.algorithms[11:19]) { # cycle through each model algorithm
+			for (model in model.algorithms) { # cycle through each model algorithm
 	
 				# create output directory
 				outdir = paste(sp.wd.arg, "/output_", model, sep=''); dir.create(outdir,recursive=TRUE);

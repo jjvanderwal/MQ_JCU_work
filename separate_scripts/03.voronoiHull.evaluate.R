@@ -86,6 +86,10 @@ if (evaluate.voronoiHull) {
 		
 		voronoiHull.eval = evaluate(model=voronoiHull.obj, p=occur[c("lon","lat")], 
 			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = voronoiHull.eval@cor; correlation.pvalue = voronoiHull.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		voronoiHull.fit = c(voronoiHull.eval@presence, voronoiHull.eval@absence)
@@ -95,6 +99,8 @@ if (evaluate.voronoiHull) {
 		voronoiHull.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = voronoiHull.fit, Obs = voronoiHull.obs))
 		})
+		# add correlation column to output
+		voronoiHull.combined.eval = cbind(voronoiHull.combined.eval, COR)
 		saveModelEvaluation(voronoiHull.eval, voronoiHull.combined.eval)	# save output
 						
 		# create response curves

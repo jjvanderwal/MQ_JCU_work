@@ -85,6 +85,10 @@ if (evaluate.mahal) {
 		outdir = paste(wd,'/output_mahal',sep=''); setwd(outdir)
 		
 		mahal.eval = evaluate(p=occur, a=bkgd, model=mahal.obj) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = mahal.eval@cor; correlation.pvalue = mahal.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		mahal.fit = c(mahal.eval@presence, mahal.eval@absence)
@@ -94,6 +98,8 @@ if (evaluate.mahal) {
 		mahal.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = mahal.fit, Obs = mahal.obs))
 		})
+		# add correlation column to output
+		mahal.combined.eval = cbind(mahal.combined.eval, COR)
 		saveModelEvaluation(mahal.eval, mahal.combined.eval)	# save output
 				
 		# create response curves

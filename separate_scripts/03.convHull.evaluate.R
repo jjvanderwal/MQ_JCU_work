@@ -86,6 +86,10 @@ if (evaluate.convHull) {
 		
 		convHull.eval = evaluate(model=convHull.obj, p=occur[c("lon","lat")], 
 			a=bkgd[c("lon","lat")]) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = convHull.eval@cor; correlation.pvalue = convHull.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		convHull.fit = c(convHull.eval@presence, convHull.eval@absence)
@@ -95,6 +99,8 @@ if (evaluate.convHull) {
 		convHull.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = convHull.fit, Obs = convHull.obs))
 		})
+		# add correlation column to output
+		convHull.combined.eval = cbind(convHull.combined.eval, COR)
 		saveModelEvaluation(convHull.eval, convHull.combined.eval)	# save output
 						
 		# create response curves

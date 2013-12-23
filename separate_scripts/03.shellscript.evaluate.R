@@ -29,7 +29,7 @@ i=1
 		# get a list of species directories
 		species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
 		
-		for (sp in species.names[1]) { # cycle through each of the species
+		for (sp in species.names[76:100]) { # cycle through each of the species
 
 			# create the species specific working directory argument
 			sp.wd.arg = paste(taxon.dir, "/models/", sp, "/", scales[i], sep=""); setwd(sp.wd.arg) 
@@ -40,7 +40,7 @@ i=1
 			# set the location of the occurrence data
 			occur.data.arg = paste(sp.wd.arg, "/occur.csv", sep="") 
 
-			for (model in model.algorithms) { # cycle through each model algorithm
+			for (model in model.algorithms[1:9]) { # cycle through each model algorithm
 					
 				# create the shell file
 				shell.file.name = paste(sp.wd.arg, "/03.", model, ".evaluate.", sp, ".sh", sep="")

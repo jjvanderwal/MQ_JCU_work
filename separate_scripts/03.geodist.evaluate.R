@@ -86,6 +86,10 @@ if (evaluate.geodist) {
 		
 		geodist.eval = evaluate(model=geodist.obj, p=occur, a=bkgd) # evaluate model using dismo's evaluate
 		#EMG NOTE: no error for p,a if columns not specified c.f. convHull
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = geodist.eval@cor; correlation.pvalue = geodist.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		geodist.fit = c(geodist.eval@presence, geodist.eval@absence)
@@ -95,6 +99,8 @@ if (evaluate.geodist) {
 		geodist.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = geodist.fit, Obs = geodist.obs))
 		})
+		# add correlation column to output
+		geodist.combined.eval = cbind(geodist.combined.eval, COR)
 		saveModelEvaluation(geodist.eval, geodist.combined.eval)	# save output
 				
 		# create response curves

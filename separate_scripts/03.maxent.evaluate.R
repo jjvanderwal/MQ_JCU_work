@@ -90,6 +90,10 @@ if (evaluate.maxent) {
 	log.presence <- presence$Logistic.prediction
 	log.absence <- background$logistic
 	maxent.eval.obj = dismoModelEvaluation(log.presence, log.absence) # use predictions to generate dismo-like model evaluation object
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = maxent.eval@cor; correlation.pvalue = maxent.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 	# need predictions and observed values to create confusion matrices for accuracy statistics
 	maxent.fit = c(log.presence, log.absence)
@@ -99,6 +103,8 @@ if (evaluate.maxent) {
 	maxent.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = maxent.fit, Obs = maxent.obs))
 		})
+		# add correlation column to output
+		maxent.combined.eval = cbind(maxent.combined.eval, COR)
 	saveModelEvaluation(maxent.eval.obj, maxent.combined.eval)	# save output
 
 }

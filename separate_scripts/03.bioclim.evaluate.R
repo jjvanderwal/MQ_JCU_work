@@ -86,14 +86,20 @@ if (evaluate.bioclim) {
 		
 		bioclim.eval = evaluate(p=occur, a=bkgd, model=bioclim.obj)	# evaluate model using dismo's evaluate
 		
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = bioclim.eval@cor; correlation.pvalue = bioclim.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
+		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		bioclim.fit = c(bioclim.eval@presence, bioclim.eval@absence)
 		bioclim.obs = c(rep(1, length(bioclim.eval@presence)), rep(0, length(bioclim.eval@absence)))
-
+		
 		# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
 		bioclim.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = bioclim.fit, Obs = bioclim.obs))
 		})
+		# add correlation column to output
+		bioclim.combined.eval = cbind(bioclim.combined.eval, COR)
 		saveModelEvaluation(bioclim.eval, bioclim.combined.eval)	# save output
 		
 		# create response curves

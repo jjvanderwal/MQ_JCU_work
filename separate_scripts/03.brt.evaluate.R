@@ -85,6 +85,10 @@ if (evaluate.brt) {
 		outdir = paste(wd,'/output_brt',sep=''); setwd(outdir)
 
 		brt.eval = evaluate(p=occur, a=bkgd, model=brt.obj, n.trees=brt.obj$gbm.call$best.trees) # evaluate model using dismo's evaluate
+				
+		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+		correlation = brt.eval@cor; correlation.pvalue = brt.eval@pcor
+		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 		# need predictions and observed values to create confusion matrices for accuracy statistics
 		brt.fit = c(brt.eval@presence, brt.eval@absence)
@@ -94,6 +98,8 @@ if (evaluate.brt) {
 		brt.combined.eval = sapply(model.accuracy, function(x){
 			return(my.Find.Optim.Stat(Stat = x, Fit = brt.fit, Obs = brt.obs))
 		})
+		# add correlation column to output
+		brt.combined.eval = cbind(brt.combined.eval, COR)
 		saveModelEvaluation(brt.eval, brt.combined.eval)	# save output
 						
 		# create response curves
