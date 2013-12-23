@@ -340,13 +340,12 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	# get the model predictions and observed values
 	predictions = getModelsPrediction(biomod.model); obs = getModelsInputData(biomod.model, "resp.var");
 
-	
-		# perform correlation test (COR) between as per Elith et al 2006 
-		cr <- try( cor.test(bioclim.fit, bioclim.obs), silent=TRUE )
-        if (class(cr) != 'try-error') {
-                xc@cor <- cr$estimate
-                xc@pcor <- cr$p.value
-        }
+	# perform correlation test (COR) as per Elith et al 2006 
+	cr <- try( cor.test(predictions, obs), silent=TRUE )
+	if (class(cr) != 'try-error') {
+			correlation = cr$estimate; correlation.pvalue = cr$p.value
+			COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
+	}
 		
 	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
 	# source my modified version of biomod2's Evaluate.models.R for consistent model accuracy statistics
@@ -354,6 +353,8 @@ saveBIOMODModelEvaluation = function(loaded.name, biomod.model) {
 	combined.eval = sapply(model.accuracy, function(x){
 		return(my.Find.Optim.Stat(Stat = x, Fit = predictions, Obs = obs))
 	})
+	# add correlation column to output
+	combined.eval = cbind(combined.eval, COR)
 	# save all the model accuracy statistics provided in both dismo and biomod2
 	rownames(combined.eval) <- c("Testing.data","Cutoff","Sensitivity", "Specificity")
 	write.csv(t(round(combined.eval, digits=3)), file=paste(getwd(), "/combined.modelEvaluation.csv", sep=""))
