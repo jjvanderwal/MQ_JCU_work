@@ -26,7 +26,7 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 if (file.exists(occur.data) && file.exists(bkgd.data)) {
 	load(occur.data); load(bkgd.data);
 } else {
-	warning("No occurrence or background data available for model evaulation!")
+	stop("No occurrence or background data available for model evaulation!")
 }
 
 # source helper functions (saveBIOMODModelEvaluation)

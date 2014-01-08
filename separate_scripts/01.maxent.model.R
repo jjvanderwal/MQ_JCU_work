@@ -26,7 +26,7 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 occur.csv = paste(dirname(occur.data), "/occur.csv", sep="")
 bkgd.csv = paste(dirname(bkgd.data), "/", strsplit(basename(bkgd.data), "_")[[1]][1], "_bkgd.csv", sep="")
 if (!file.exists(occur.csv) | !file.exists(bkgd.csv)) {
-	warning("No occurrence or background data available for model creation!")
+	stop("No occurrence or background data available for model creation!")
 }
 
 ###run the models and store models

@@ -23,10 +23,10 @@ if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], d
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
 ###load in the data
-if (file.exists(occur.data) && file.exists(bkgd.data)) {
-	load(occur.data); load(bkgd.data);
-} else {
-	warning("No occurrence or background data available for model evaulation!")
+occur.csv = paste(dirname(occur.data), "/occur.csv", sep="")
+bkgd.csv = paste(dirname(bkgd.data), "/", strsplit(basename(bkgd.data), "_")[[1]][1], "_bkgd.csv", sep="")
+if (!file.exists(occur.csv) | !file.exists(bkgd.csv)) {
+	stop("No occurrence or background data available for model creation!")
 }
 
 # source helper functions (saveModelEvaluation, createMarginalResponseCurves, calculateVariableImpt, calculatePermutationVarImpt)
@@ -89,11 +89,11 @@ if (evaluate.maxent) {
 	background <- read.csv(paste(model.dir, "/", species, "_backgroundPredictions.csv", sep=""))
 	log.presence <- presence$Logistic.prediction
 	log.absence <- background$logistic
-	maxent.eval.obj = dismoModelEvaluation(log.presence, log.absence) # use predictions to generate dismo-like model evaluation object
+	maxent.eval = dismoModelEvaluation(log.presence, log.absence) # use predictions to generate dismo-like model evaluation object
 				
-		# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
-		correlation = maxent.eval@cor; correlation.pvalue = maxent.eval@pcor
-		COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
+	# extract (COR) coefficient to add to evaluation output for easy access (Elith et al 2006)
+	correlation = maxent.eval@cor; correlation.pvalue = maxent.eval@pcor
+	COR = c(as.numeric(correlation), correlation.pvalue, NA, NA)
 		
 	# need predictions and observed values to create confusion matrices for accuracy statistics
 	maxent.fit = c(log.presence, log.absence)
@@ -101,10 +101,9 @@ if (evaluate.maxent) {
 
 	# get the model accuracy statistics using a modified version of biomod2's Evaluate.models.R
 	maxent.combined.eval = sapply(model.accuracy, function(x){
-			return(my.Find.Optim.Stat(Stat = x, Fit = maxent.fit, Obs = maxent.obs))
-		})
-		# add correlation column to output
-		maxent.combined.eval = cbind(maxent.combined.eval, COR)
-	saveModelEvaluation(maxent.eval.obj, maxent.combined.eval)	# save output
-
+		return(my.Find.Optim.Stat(Stat = x, Fit = maxent.fit, Obs = maxent.obs))
+	})
+	# add correlation column to output
+	maxent.combined.eval = cbind(maxent.combined.eval, COR)
+	saveModelEvaluation(maxent.eval, maxent.combined.eval)	# save output
 }

@@ -26,7 +26,7 @@ for (lib in necessary) library(lib,character.only=T)#load the libraries
 if (file.exists(occur.data)) {
 	load(occur.data);
 } else {
-	warning("No occurrence data available for model creation!")
+	stop("No occurrence data available for model creation!")
 }
 
 ###run the models and store models
