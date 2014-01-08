@@ -22,6 +22,13 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
+###load in the data
+occur.csv = paste(dirname(occur.data), "/occur.csv", sep="")
+bkgd.csv = paste(dirname(bkgd.data), "/", strsplit(basename(bkgd.data), "_")[[1]][1], "_bkgd.csv", sep="")
+if (!file.exists(occur.csv) | !file.exists(bkgd.csv)) {
+	warning("No occurrence or background data available for model creation!")
+}
+
 ###run the models and store models
 #############################################################################################
 #
@@ -128,8 +135,8 @@ if (model.maxent) {
 	outdir = paste(wd,'/output_maxent',sep=''); #dir.create(outdir,recursive=TRUE); #create the output directory
 	###not user modified section
 	tstr = paste('java -mx2048m -jar ',maxent.jar,' ',sep='') #start the maxent string
-	tstr = paste(tstr,'environmentallayers=', bkgd.data, " ",sep='') 
-	tstr = paste(tstr,'samplesfile=', occur.data, " ",sep='')
+	tstr = paste(tstr,'environmentallayers=', bkgd.csv, " ",sep='') 
+	tstr = paste(tstr,'samplesfile=', occur.csv, " ",sep='')
 	tstr = paste(tstr,'outputdirectory=',outdir, " ", sep='')
 	tstr = paste(tstr,'autorun=TRUE visible=FALSE warnings=FALSE tooltips=FALSE ',sep='')
 	tstr = paste(tstr,'askoverwrite=FALSE skipifexists=FALSE prefixes=TRUE verbose=FALSE ',sep='')

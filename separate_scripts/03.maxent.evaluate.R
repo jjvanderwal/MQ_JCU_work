@@ -22,9 +22,9 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-# load in the data
-if (file.exists(paste(wd, "/occur.RData", sep="")) && file.exists(paste(wd, "/bkgd.RData", sep=""))) {
-	load(paste(wd, "/occur.RData", sep="")); load(paste(wd, "/bkgd.RData", sep=""));
+###load in the data
+if (file.exists(occur.data) && file.exists(bkgd.data)) {
+	load(occur.data); load(bkgd.data);
 } else {
 	warning("No occurrence or background data available for model evaulation!")
 }

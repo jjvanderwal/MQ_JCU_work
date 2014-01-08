@@ -21,7 +21,7 @@ checkModelLayers = function(model.obj) {
 	if (inherits(model.obj, "DistModel")) { # dismo package
 		model.layers = colnames(model.obj@presence)
 	} else if (inherits(model.obj, "gbm")) { # brt package
-		model.layers = summary(model.obj)$var
+		model.layers = summary(model.obj, plotit=FALSE)$var
 		# EMG biomod2 packages has been updated
 		#model.layers = model.obj$var.names
 	} else if (inherits(model.obj, "BIOMOD.models.out")) { # biomod package
@@ -52,6 +52,7 @@ saveModelProjection = function(out.model, model.name) {
 	model.dir = paste(wd, "/output_", model.name, sep="")
 	outfilename = paste(model.dir, "/", es.name, "_", model.scale, "_", project.scale, sep="")
 	writeRaster(out.model, outfilename, format="ascii", overwrite=TRUE)
+	Sys.sleep(2)
 	message(paste("Zipping ascii: ", outfilename, sep=""))
 	system(paste("gzip ", outfilename, ".asc", sep=""))
 }

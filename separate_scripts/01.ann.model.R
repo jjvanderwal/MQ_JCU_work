@@ -22,9 +22,12 @@ installed = necessary %in% installed.packages() #check if library is installed
 if (length(necessary[!installed]) >=1) install.packages(necessary[!installed], dep = T) #if library is not installed, install it
 for (lib in necessary) library(lib,character.only=T)#load the libraries
 
-###read in the necessary observation and background data
-occur = read.csv(occur.data) #read in the observation data lon/lat
-bkgd = read.csv(bkgd.data) #read in the background data lon/lat
+###load in the data
+if (file.exists(occur.data) && file.exists(bkgd.data)) {
+	load(occur.data); load(bkgd.data);
+} else {
+	warning("No occurrence or background data available for model creation!")
+}
 
 ###run the models and store models
 ############### BIOMOD2 Models ###############

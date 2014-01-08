@@ -14,7 +14,7 @@ scales = c("5km", "1km", "250m")
 
 # create a list of model algorithms
 model.algorithms = c("bioclim", "domain", "mahal", "geodist", "convHull", "circles", "geoIDW", "voronoiHull", "brt", "maxent",
-	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf") #, "biomod.maxent")
+	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf")
 
 # define root climate scenarios directory, each directory should have env files related to a climate scenario
 scenarios.dir = "/rdsi/ctbcc_data/Climate/CIAS/Australia"
@@ -27,13 +27,14 @@ for (taxon in taxa[1]) {
 	# get a list of species directories
 	species.names = list.files(paste(taxon.dir, "/models", sep="")) #get a list of all the species
 
-	for (sp in species.names[1]) { # cycle through each of the species
+	for (sp in species.names[81:100]) { # cycle through each of the species
 
 		# set the species arg
 		species.arg = sp
 			
-		for (i in 1:length(scales[2])) {
-		
+#		for (i in 1:length(scales[2])) {
+i = 2
+
 			model.scale = scales[i]
 			project.scale = scales[i]
 
@@ -59,7 +60,7 @@ for (taxon in taxa[1]) {
 				cat('module load java\n', file=shell.file) # need for maxent
 				cat('module load R\n', file=shell.file) # need for R
 
-				for (model in model.algorithms[c(8,10)]) { # cycle through each model algorithm	
+				for (model in model.algorithms[4:10]) { # cycle through each model algorithm	
 					for (es in scenarios) { # cycle through each of the climate scenarios
 						es.name = basename(es)
 						# this job calls the 02.init.args.project.R file using arguments defined above to set the parameters for the models
@@ -73,7 +74,7 @@ for (taxon in taxa[1]) {
 			# submit job
 			system(paste("qsub -l nodes=1:ppn=1 -l pmem=2gb ", shell.file.name, sep=""))
 
-		} # end for model scale
+#		} # end for model scale
 	} # end for species
 } # end for taxon
 	

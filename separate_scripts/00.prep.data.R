@@ -15,17 +15,14 @@ taxa = c("mammals", "birds", "reptiles", "amphibians")
 # define spatial scales
 scales = c("5km", "1km", "250m"); cellsizes = c(0.05, 0.01, 0.0025)
 
-#EMG Only 5km, 1km is currently available (in current.76to05)
-scales = scales[1:2]
-
 # define working dir
 wd = "/rdsi/ccimpacts/SDM_assessment"
 
 # decide which parts to run
-doPartA = TRUE
-doPartB = TRUE
+doPartA = FALSE
+doPartB = FALSE
 doPartC = TRUE
-doPartD = TRUE
+doPartD = FALSE
 doPartE = TRUE
 
 # A. create taxon occurrence data for each scale
@@ -36,8 +33,8 @@ if (doPartA) {
 		taxa.data = read.csv(paste(taxa.dir, "", "/", taxon, ".csv", sep=""))
 		
 		# create an occur for each scale
-		for (i in 1:length(scales)) {
-		
+#		for (i in 1:length(scales)) {
+i=3		
 			# create temporary object to hold data (just SPPCODE, lon and lat)
 			temp.taxa.data = taxa.data[, c("SPPCODE", "lon", "lat")]
 			
@@ -51,7 +48,7 @@ if (doPartA) {
 			# write out new file
 			write.csv(temp.taxa.data, file=paste(wd, "/", taxon, "/", scales[i], "_occur.csv", sep=""), row.names=FALSE)
 			
-		}	# end for scale
+#		}	# end for scale
 	} # end for taxa
 	rm(list=c("taxon", "taxa.data", "i", "temp.taxa.data"))
 }
@@ -60,8 +57,8 @@ if (doPartB) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
-		for (j in 1:length(scales)) {
-
+#		for (j in 1:length(scales)) {
+j=3
 			# read in rescaled occurence file
 			rescaled.data = read.csv(paste(wd, "/", taxon, "/", scales[j], "_occur.csv", sep=""))
 		
@@ -76,7 +73,7 @@ if (doPartB) {
 		
 			# write out new file
 			write.csv(temp.bkgd.data, file=paste(wd, "/", taxon, "/", scales[j], "_bkgd.csv", sep=""), row.names=FALSE)
-		}	# end for scale
+#		}	# end for scale
 	} # end for taxa
 	rm(list=c("taxon", "j", "rescaled.data", "temp.bkgd.data"))
 }
@@ -91,11 +88,16 @@ if (doPartC) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
-		for (m in 1:length(scales)) {
-			
+#		for (m in 1:length(scales)) {
+m=3			
 			# get all the environmental data in the folder
-			enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[m], "/bioclim_asc/current.76to05", sep=""), 
-				full.names=TRUE)
+			if (scales[m] %in% c("5km", "1km")) {
+				enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[m], "/bioclim_asc/current.76to05", sep=""), 
+					full.names=TRUE)
+			} else {
+				enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[m], "/baseline.76to05/bioclim", sep=""), 
+					full.names=TRUE)
+			}
 			# pull out the layers we are interested in
 			enviro.data = enviro.data.all[which(gsub(".asc", "", basename(enviro.data.all)) %in% enviro.data.names)]
 
@@ -114,7 +116,7 @@ if (doPartC) {
 				
 			# replace bkgd.csv with SWD
 			write.csv(rescaled.bkgd.data, file=paste(wd, "/", taxon, "/", scales[m], "_bkgd.csv", sep=""), row.names=FALSE)
-		} # end for scales
+#		} # end for scales
 	}# end for taxa
 	rm(list=c("taxon", "m", "rescaled.bkgd.data", "basc"))
 }
@@ -124,8 +126,8 @@ if (doPartD) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
-		for (k in 1:length(scales)) {
-		
+#		for (k in 1:length(scales)) {
+k=3		
 			# read in rescaled data file
 			rescaled.data = read.csv(paste(wd, "/", taxon, "/", scales[k], "_occur.csv", sep=""))
 		
@@ -145,7 +147,7 @@ if (doPartD) {
 				# write new occur csv file
 				write.csv(sp.occur, file=paste(dir.name, "/occur.csv", sep=""), row.names=FALSE)
 			} # end for species
-		} # end for scales
+#		} # end for scales
 	}# end for taxa
 	rm(list=c("taxon", "k", "rescaled.data", "sp.occur"))
 }
@@ -161,8 +163,8 @@ if (doPartE) {
 	for (taxon in taxa[1]) {
 
 		# for each scale
-		for (l in 1:length(scales)) {	
-			
+#		for (l in 1:length(scales)) {	
+l=3			
 			# get all the environmental data in the folder
 			enviro.data.all = list.files(paste(enviro.data.dir, "/", scales[l], "/bioclim_asc/current.76to05", sep=""), 
 				full.names=TRUE)
@@ -189,7 +191,7 @@ if (doPartE) {
 				# replace occur.csv with SWD
 				write.csv(sp.occur, file=paste(wd, "/", taxon, "/models/", sp, "/", scales[l], "/occur.csv", sep=""), row.names=FALSE)
 			} # end for species
-		} # end for scales
+#		} # end for scales
 	}# end for taxa
 	rm(list=c("taxon", "l", "sp.occur", "oasc"))
 }

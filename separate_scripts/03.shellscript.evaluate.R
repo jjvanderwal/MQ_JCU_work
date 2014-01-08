@@ -14,7 +14,7 @@ scales = c("5km", "1km", "250m")
 
 # create a list of model algorithms
 model.algorithms = c("bioclim", "domain", "mahal", "geodist", "convHull", "circles", "geoIDW", "voronoiHull", "brt", "maxent",
-	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf") #, "biomod.maxent")
+	"glm", "gam", "gbm", "cta", "ann", "sre", "fda", "mars", "rf")
 
 # create the individual shell scripts
 for (taxon in taxa[1]) {
@@ -40,7 +40,7 @@ i=1
 			# set the location of the occurrence data
 			occur.data.arg = paste(sp.wd.arg, "/occur.csv", sep="") 
 
-			for (model in model.algorithms[1:9]) { # cycle through each model algorithm
+			for (model in model.algorithms[11:19]) { # cycle through each model algorithm
 					
 				# create the shell file
 				shell.file.name = paste(sp.wd.arg, "/03.", model, ".evaluate.", sp, ".sh", sep="")
