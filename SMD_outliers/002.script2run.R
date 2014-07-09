@@ -64,7 +64,7 @@ n.obs = nrow(occur) #define the number of obs
 sum.out = NULL
 for (coi in Algs) { cat('\t',coi,'\n')
 	tdata = out[,coi]
-	if ((all(is.na(tdata)) | sum(tdata)==0) & !coi %in% Algs.geo ) {
+	if ((all(is.na(tdata)) | sum(tdata,na.rm=TRUE)==0) & !coi %in% Algs.geo ) {
 		if (is.null(sum.out)) {
 			sum.out = NULL
 		} else {
@@ -89,7 +89,7 @@ for (coi in Algs) { cat('\t',coi,'\n')
 			tt$maxKappa = accuracy(out$pa,tdata,tt$threshold.maxKappa[1])$Kappa; tt$AUC.full = auc(out$pa,tdata)
 			tout = cbind(data.frame(spp=spp,alg=coi,n.obs=n.obs,raw.threshold=tt$threshold.max.sensitivity.specificity[1],as.data.frame(tt)[1,]),accuracy(out$pa,tdata,tt$threshold.max.sensitivity.specificity[1]))
 		}
-		tdata[which(tdata<tt$threshold.max.sensitivity.specificity[1])] = 0; tdata[which(tdata>0)] = 1 #apply the thresholds
+		tdata[which(tdata<=tt$threshold.max.sensitivity.specificity[1])] = 0; tdata[which(tdata>0)] = 1 #apply the thresholds
 		tasc = baseasc; tasc[cbind(pos$row,pos$col)] = tdata
 		tt2 = ClassStat(tasc,latlon=TRUE); tt2 = tt2[which(tt2$class==1),]
 		tout = cbind(tout,tt2)
