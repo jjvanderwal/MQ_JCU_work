@@ -27,7 +27,7 @@ Algs.biomod = c("ann","cta","fda","gam","gbm","glm","mars","rf","sre") #define t
 
 ###start working
 pos = read.csv(paste(out.dir,'base.positions.csv',sep=''),as.is=TRUE) #read in teh base positions
-baseasc = read.asc(paste(out.dir,'base.asc',sep='')) #read in teh baseasc
+baseasc = read.asc(paste(out.dir,'base.asc',sep='')) #read in the baseasc
 
 ##if needed, create the current spp distribution RData files
 setwd(paste(out.dir,'current/',sep='')) #set wd as this output dir
@@ -60,30 +60,34 @@ occur$pa = 1; occur = occur[,c('lon','lat','pa')]
 out = merge(out,occur,all=TRUE); out$pa[which(is.na(out$pa))] = 0 
 n.obs = nrow(occur) #define the number of obs
 
+# create a file to records species with "bad" predictions (all NA's or all absences)
+outfilename = "dodgy_Coi.txt"
+write(c("date", "sp", "coi", "allNA", "all0"), file = outfilename, ncolumns = 5, append=TRUE, sep = "\t")
+	
 ###do any scaling and calculate thresholds & do class stats...
 sum.out = NULL
 for (coi in Algs) { cat('\t',coi,'\n')
 	tdata = out[,coi]
-	if ((all(is.na(tdata)) | sum(tdata,na.rm=TRUE)==0) & !coi %in% Algs.geo ) {
-		if (is.null(sum.out)) {
-			sum.out = NULL
-		} else {
-			tout = sum.out[1,]; tout[1,] = c(spp,coi,n.obs,rep(NA,ncol(sum.out)-2))
-			sum.out = rbind(sum.out,tout)
-		}
-	} else if (coi %in% Algs.geo) {
-			out[,coi] = NULL #remove from dataset	
+	if (coi %in% Algs.geo) {
+			next	# skip it and move on to the next coi
+	} else if ((all(is.na(tdata)) | sum(tdata,na.rm=TRUE)==0)) {
+		write(c(as.character(Sys.Date()), spp, coi, all(is.na(tdata)), sum(tdata,na.rm=TRUE)==0), file = outfilename, ncolumns = 5, append=TRUE, sep = "\t")
 	} else {
 		if (coi %in% Algs.biomod) {
 			tdata = tdata/1000
 			tt = optim.thresh(out$pa,tdata,101); tt = as.data.frame(tt)[1,]; colnames(tt) = paste('threshold.',colnames(tt),sep='') #kappa.fun(out$pa,tdata)
 			tt$maxKappa = accuracy(out$pa,tdata,tt$threshold.maxKappa[1])$Kappa; tt$AUC.full = auc(out$pa,tdata)
 			tout = cbind(data.frame(spp=spp,alg=coi,n.obs=n.obs,raw.threshold=tt$threshold.max.sensitivity.specificity[1]*1000,as.data.frame(tt)[1,]),accuracy(out$pa,tdata,tt$threshold.max.sensitivity.specificity[1]))
-		} else if (coi %in% c("brt","mahal")) {
+		} else if (coi == "mahal") { # rescale between 0-1
 			tdata = (out[,coi] + abs(min(out[,coi],na.rm=TRUE)))/diff(range(out[,coi],na.rm=TRUE))
 			tt = optim.thresh(out$pa,tdata,101); tt = as.data.frame(tt)[1,]; colnames(tt) = paste('threshold.',colnames(tt),sep='') #kappa.fun(out$pa,tdata)
 			tt$maxKappa = accuracy(out$pa,tdata,tt$threshold.maxKappa[1])$Kappa; tt$AUC.full = auc(out$pa,tdata)
 			tout = cbind(data.frame(spp=spp,alg=coi,n.obs=n.obs,raw.threshold=tt$threshold.max.sensitivity.specificity[1]*diff(range(out[,coi],na.rm=TRUE))-abs(min(out[,coi],na.rm=TRUE)),as.data.frame(tt)[1,]),accuracy(out$pa,tdata,tt$threshold.max.sensitivity.specificity[1]))
+		} else if (coi == "brt") { # response is logit, use inverse logit to rescale
+			tdata = exp(out[,coi])/(1+exp(out[,coi]))
+			tt = optim.thresh(out$pa,tdata,101); tt = as.data.frame(tt)[1,]; colnames(tt) = paste('threshold.',colnames(tt),sep='') #kappa.fun(out$pa,tdata)
+			tt$maxKappa = accuracy(out$pa,tdata,tt$threshold.maxKappa[1])$Kappa; tt$AUC.full = auc(out$pa,tdata)
+			tout = cbind(data.frame(spp=spp,alg=coi,n.obs=n.obs,raw.threshold=log(tt$threshold.max.sensitivity.specificity[1]/(1-tt$threshold.max.sensitivity.specificity[1])),as.data.frame(tt)[1,]),accuracy(out$pa,tdata,tt$threshold.max.sensitivity.specificity[1]))
 		} else {
 			tt = optim.thresh(out$pa,tdata,101); tt = as.data.frame(tt)[1,]; colnames(tt) = paste('threshold.',colnames(tt),sep='') #kappa.fun(out$pa,tdata)
 			tt$maxKappa = accuracy(out$pa,tdata,tt$threshold.maxKappa[1])$Kappa; tt$AUC.full = auc(out$pa,tdata)
